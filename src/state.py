@@ -1,5 +1,6 @@
 import pyautogui as pg
 import numpy as np
+import time
 import slot
 
 SAP_WINDOW_W = 960
@@ -28,7 +29,7 @@ class StateServer:
             print("StateServer could not find Arena Mode button.")
             exit(1)
         pg.click(self.arena_loc, clicks=2, duration=0.5)
-        sleep(10)
+        time.sleep(10)
 
     def get_state(self):
         pil = pg.screenshot(region=self.window_loc)

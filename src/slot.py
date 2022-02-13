@@ -1,3 +1,5 @@
+from enum import Enum 
+
 class Slot(Enum):
     T0 = 0
     T1 = 1
@@ -15,6 +17,7 @@ class Slot(Enum):
 TEAM_SLOTS = [Slot.T0, Slot.T1, Slot.T2, Slot.T3, Slot.T4]
 BUY_SLOTS = [Slot.B0, Slot.B1, Slot.B2, Slot.B3, Slot.B4, Slot.B5, Slot.B6]
 
+'''
 SLOT_LOC = {
     Slot.T0 : (ROW_0, ROW_1, COL_0, COL_1),
     Slot.T1 : (ROW_0, ROW_1, COL_1, COL_2),
@@ -29,3 +32,4 @@ SLOT_LOC = {
     Slot.B5 : (ROW_2, ROW_3, COL_5, COL_6),
     Slot.B6 : (ROW_2, ROW_3, COL_6, COL_7),
 }
+'''
