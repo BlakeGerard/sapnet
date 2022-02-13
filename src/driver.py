@@ -1,12 +1,15 @@
 from state import StateServer
+from action import *
+
 import numpy as np
-import cv2 as cv
+import matplotlib
+import matplotlib.pyplot as plt
+import torch
 
 srv = StateServer()
-srv.start()
+#srv.start()
 state = srv.get_state()
 
-cv.imshow("State", state)
-cv.waitKey(0)
-cv.destroyAllWindows()
-cv.waitKey(1)
+# Buy shop pet at Slot.B0 and place it in team Slot.T0
+srv.apply(Action.A10)
+srv.apply(Action.A40)

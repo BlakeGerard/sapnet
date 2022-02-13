@@ -1,10 +1,11 @@
 import pyautogui as pg
 import numpy as np
 import time
-import slot
+from slot import *
+from action import *
 
-SAP_WINDOW_W = 960
-SAP_WINDOW_H = 629
+import torch
+import torchvision.transforms as T
 
 class StateServer:
     res = {
@@ -19,8 +20,7 @@ class StateServer:
             print("StateServer failed to find SAP window.")
             exit(1)
 
-        # Set pixels from left, pixels from top, width, height
-        self.window_loc = (icon_loc.left, icon_loc.top * 16, 
+        self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, 
                            SAP_WINDOW_W, SAP_WINDOW_H)
 
     def start(self):
@@ -32,20 +32,13 @@ class StateServer:
         time.sleep(10)
 
     def get_state(self):
-        pil = pg.screenshot(region=self.window_loc)
-        return np.asarray(pil)
+        state = pg.screenshot(region=self.window_loc)
+        state = np.ascontiguousarray(state)
+        state = torch.from_numpy(state)
+        state = state.unsqueeze(0)
+        return state
 
-    def action_swap(self, src, dst):
-        assert(src in TEAM_SLOTS and dst in TEAM_SLOTS)
-
-    def action_buy(self, src, dst):
-        assert(src in BUY_SLOTS and dst in TEAM_SLOTS)
-
-    def action_freeze(self, dst):
-        assert(dst in BUY_SLOTS)
-
-    def action_roll(self):
-        pass
-        
-    def action_end(self):
-        pass
+    def apply(self, action):
+        """ Apply the given action in SAP """
+        f, args = SAP_ACTION_FUNC[action]
+        f(args)

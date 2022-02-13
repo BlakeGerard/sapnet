@@ -1,5 +1,10 @@
 from enum import Enum 
 
+SAP_WINDOW_L = 0
+SAP_WINDOW_T = 29
+SAP_WINDOW_W = 960
+SAP_WINDOW_H = 600
+
 class Slot(Enum):
     T0 = 0
     T1 = 1
@@ -14,22 +19,23 @@ class Slot(Enum):
     B5 = 10
     B6 = 11
 
-TEAM_SLOTS = [Slot.T0, Slot.T1, Slot.T2, Slot.T3, Slot.T4]
-BUY_SLOTS = [Slot.B0, Slot.B1, Slot.B2, Slot.B3, Slot.B4, Slot.B5, Slot.B6]
-
-'''
 SLOT_LOC = {
-    Slot.T0 : (ROW_0, ROW_1, COL_0, COL_1),
-    Slot.T1 : (ROW_0, ROW_1, COL_1, COL_2),
-    Slot.T2 : (ROW_0, ROW_1, COL_2, COL_3),
-    Slot.T3 : (ROW_0, ROW_1, COL_3, COL_4),
-    Slot.T4 : (ROW_0, ROW_1, COL_4, COL_5),
-    Slot.B0 : (ROW_2, ROW_3, COL_0, COL_1),
-    Slot.B1 : (ROW_2, ROW_3, COL_1, COL_2),
-    Slot.B2 : (ROW_2, ROW_3, COL_2, COL_3),
-    Slot.B3 : (ROW_2, ROW_3, COL_3, COL_4),
-    Slot.B4 : (ROW_2, ROW_3, COL_4, COL_5),
-    Slot.B5 : (ROW_2, ROW_3, COL_5, COL_6),
-    Slot.B6 : (ROW_2, ROW_3, COL_6, COL_7),
+    Slot.T0 : (240, 240),
+    Slot.T1 : (320, 240),
+    Slot.T2 : (400, 240),
+    Slot.T3 : (480, 240),
+    Slot.T4 : (560, 240),
+    Slot.B0 : (240, 400),
+    Slot.B1 : (320, 400),
+    Slot.B2 : (400, 400),
+    Slot.B3 : (480, 400),
+    Slot.B4 : (560, 400),
+    Slot.B5 : (640, 400),
+    Slot.B6 : (720, 400)
 }
-'''
+
+CONFIRM_LOC = (630, 400)
+ROLL_LOC = (120, 580)
+SELL_LOC = (440, 580)
+FREEZE_LOC = (440, 580)
+END_LOC = (790, 580)
