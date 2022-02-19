@@ -1,5 +1,6 @@
 from enum import Enum
 from slot import *
+import torch
 import pyautogui as pg
 
 def action_move(args):
@@ -27,7 +28,6 @@ def action_sell(args):
 def action_freeze(args):
     """ Freeze the shop pet at args """
     assert(args is not None)
-    pg.displayMousePosition()
     pg.moveTo(SLOT_LOC[args], duration=0.2)
     pg.doubleClick()
     pg.moveTo(FREEZE_LOC, duration=0.2)
@@ -43,7 +43,7 @@ def action_end(args):
     """ End turn """
     assert(args is None)
     pg.moveTo(END_LOC, duration=0.2)
-    pg.click(clicks=3)
+    pg.click()
 
 class Action(Enum):
     A0 = 0
@@ -179,3 +179,27 @@ SAP_ACTION_FUNC = {
 }
 
 SAP_ACTION_SPACE = list(SAP_ACTION_FUNC.keys())
+
+SAP_ACTION_NO_MASK         = [1] * len(SAP_ACTION_SPACE)
+SAP_ACTION_LOW_GOLD_MASK   = [0 if i >= 10 and i <= 44 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+SAP_ACTION_NO_PET_BUY_MASK = [0 if i >= 19 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+SAP_ACTION_TURN_ONE_MASK   = [0 if i >= 25 and i <= 39 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+SAP_ACTION_TURN_THREE_MASK = [0 if i >= 25 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+SAP_ACTION_TURN_FIVE_MASK  = [0 if i >= 30 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+#SAP_ACTION_T0_MASK         = [0 if i >= 10 and i <= 49 and (i-0) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+#SAP_ACTION_T1_MASK         = [0 if i >= 10 and i <= 49 and (i-1) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+#SAP_ACTION_T2_MASK         = [0 if i >= 10 and i <= 49 and (i-2) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+#SAP_ACTION_T3_MASK         = [0 if i >= 10 and i <= 49 and (i-3) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+#SAP_ACTION_T4_MASK         = [0 if i >= 10 and i <= 49 and (i-4) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+
+SAP_ACTION_NO_MASK         = torch.tensor(SAP_ACTION_NO_MASK).unsqueeze(0)
+SAP_ACTION_LOW_GOLD_MASK   = torch.tensor(SAP_ACTION_LOW_GOLD_MASK).unsqueeze(0)
+SAP_ACTION_NO_PET_BUY_MASK = torch.tensor(SAP_ACTION_NO_PET_BUY_MASK).unsqueeze(0)
+SAP_ACTION_TURN_ONE_MASK   = torch.tensor(SAP_ACTION_TURN_ONE_MASK).unsqueeze(0)
+SAP_ACTION_TURN_THREE_MASK = torch.tensor(SAP_ACTION_TURN_THREE_MASK).unsqueeze(0)
+SAP_ACTION_TURN_FIVE_MASK  = torch.tensor(SAP_ACTION_TURN_FIVE_MASK).unsqueeze(0)
+#SAP_ACTION_T0_MASK         = torch.tensor(SAP_ACTION_T0_MASK).unsqueeze(0)
+#SAP_ACTION_T1_MASK         = torch.tensor(SAP_ACTION_T1_MASK).unsqueeze(0)
+#SAP_ACTION_T2_MASK         = torch.tensor(SAP_ACTION_T2_MASK).unsqueeze(0)
+#SAP_ACTION_T3_MASK         = torch.tensor(SAP_ACTION_T3_MASK).unsqueeze(0)
+#SAP_ACTION_T4_MASK         = torch.tensor(SAP_ACTION_T4_MASK).unsqueeze(0)

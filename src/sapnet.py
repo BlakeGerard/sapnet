@@ -1,52 +1,69 @@
 import math
 import random
 import numpy as np
+from action import SAP_ACTION_SPACE
 from collections import namedtuple, deque
+from datetime import datetime
 
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
+from torchvision.transforms.functional import get_image_num_channels, pil_to_tensor, normalize
 
-Transition = namedtuple('Transition', ('state', 'action', 'next_state', 'reward'))
+#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-class ReplayMemory(object):
-    def __init__(self, capacity):
-        self.memory = deque([], maxlen=capacity)
+class MaskedSoftmax(nn.Module):
+    def __init__(self):
+        super(MaskedSoftmax, self).__init__()
+        self.softmax = nn.Softmax(1)
+
+    def forward(self, state, mask):
+        state_masked = state.clone()
+        state_masked[mask == 0] = -float("inf")
+        return self.softmax(state_masked)
+
+class SAPNetActorCritic(nn.Module):
+
+    def __init__(self, name):
+        super(SAPNetActorCritic, self).__init__()
+        self.name = name
+        n_actions = len(SAP_ACTION_SPACE)
+
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(3, 32, kernel_size = 5, stride = 1, padding = "same"),
+            nn.GELU(),
+            nn.MaxPool2d(kernel_size = 2, stride = 2)
+        )
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size = 5, stride = 1, padding = "same"),
+            nn.GELU(),
+            nn.MaxPool2d(kernel_size = 2, stride = 2)
+        )
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(64 * 150 * 240, n_actions)
+        self.dropout = nn.Dropout()
+        self.action_head = MaskedSoftmax()
+        self.critic_head = nn.Linear(n_actions, 1)
     
-    def __len__(self):
-        return len(self.memory)
+    def forward(self, image, mask):
+        state = pil_to_tensor(image).float()
+        means = [state[i:,:,].mean() for i in range(get_image_num_channels(state))]
+        stds = [state[i:,:,].std()  for i in range(get_image_num_channels(state))]
+        normalize(state, means, stds, True)
+        state = state.unsqueeze(0)
+        state = self.layer1(state)
+        state = self.layer2(state)
+        state = self.flatten(state)
+        state = self.fc1(state)
+        state = self.dropout(state)
+        action_prob = self.action_head(state, mask)
+        state_value = self.critic_head(state)
+       	return action_prob, state_value
 
-    def push(self, *args):
-        self.memory.append(Transition(*args))
+    def save(self):
+	    path = "models/" + self.name + ".pt"
+	    torch.save(self.state_dict(), path)
 
-    def sample(self, batch_size):
-        return random.sample(self.memory, batch_size)
-
-class SAPNetDQN(nn.Module):
-
-    def __init__(self, w, h, outputs):
-        super(SAPNetDQN, self).__init__()
-
-        self.conv1 = nn.Conv2d(3, 16, kernel_size=5, stride=2)
-        self.bn1 = nn.BatchNorm2d(16)
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, stride=2)
-        self.bn2 = nn.BatchNorm2d(32)
-        self.conv3 = nn.Conv2d(32, 32, kernel_size=5, stride=2)
-        self.bn3 = nn.BatchNorm2d(32)
-
-        # Compute linear input connections
-        def conv2d_size_out(size, kernel_size=5, stride=2):
-            return (size - (kernel_size - 1) - 1) // stride + 1
-        convw = conv2d_size_out(conv2d_size_out(conv2d_size_out(w)))
-        convh = conv2d_size_out(conv2d_size_out(conv2d_size_out(h)))
-        linear_input_size = convw * convh * 32
-
-        self.head = nn.Linear(linear_input_size, outputs)
-    
-    def forward(self, x):
-        x = x.to(device)
-        x = F.relu(self.bn1(self.conv1(x)))
-        x = F.relu(self.bn2(self.conv2(x)))
-        x = F.relu(self.bn3(self.conv3(x)))
-        return self.head(x.view(x.size(0), -1))
+    def load(self, path):
+        self.load_state_dict(torch.load(path))
+        #self.eval()

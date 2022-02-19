@@ -1,15 +1,16 @@
-from state import StateServer
-from action import *
+from train import *
+from sapnet import SAPNetActorCritic
+from os.path import exists
 
-import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-import torch
+load_path = "model/goddard.pt"
 
-srv = StateServer()
-#srv.start()
-state = srv.get_state()
+def main():
+	model = SAPNetActorCritic("goddard")
+	if (exists(load_path)):
+		model.load(load_path)
+	
+	trainer = ActorCriticTrainer(model)
+	trainer.train()
 
-# Buy shop pet at Slot.B0 and place it in team Slot.T0
-srv.apply(Action.A10)
-srv.apply(Action.A40)
+if __name__ == '__main__':
+	main()
