@@ -34,7 +34,8 @@ class SAPServer:
         "two_gold": "resources/two_gold.png",
         "ten_gold": "resources/ten_gold.png",
         "gameover": "resources/gameover.png",
-        "slot": "resources/slot.png"
+        "slot": "resources/slot.png",
+        "start_game": "resources/start_game.png"
     }
 
     def __init__(self, role):
@@ -53,7 +54,7 @@ class SAPServer:
     def start_run(self):
         self.join_private_match()
         self.start_private_match()
-        #pg.moveTo(ARENA_LOC, duration=0.5)
+        #pg.moveTo(ARENA_LOC, duration=0.2)
         #pg.doubleClick()
         #time.sleep(1)
 
@@ -62,8 +63,8 @@ class SAPServer:
         self.press_button(CONFIRM_LOC)
 
     def press_button(self, loc):
-        pg.moveTo(loc)
-        pg.doubleClick()
+        pg.moveTo(loc, duration=0.2)
+        pg.click(clicks=2, interval=0.2)
         time.sleep(1)
 
     def click_center(self):
@@ -174,6 +175,8 @@ class SAPServer:
 
     def start_private_match(self):
         if (self.role is Role.HOST):
+            while(pg.locate(Image.open(self.res["start_game"], self.get_state(), confidence=0.95) is None):
+                time.sleep(5)
             self.press_button(START_GAME_LOC)
         else:
             while(pg.locate(Image.open(self.res["ten_gold"]), self.get_state(), confidence=0.95)):
