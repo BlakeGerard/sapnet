@@ -8,12 +8,18 @@ from action import *
 import torch
 from torchvision.transforms.functional import pil_to_tensor
 
+SAP_PRIVATE_GAME_NAME = "dogpark"
+
 class Battle(Enum):
     WIN = 0
     LOSS = 1
     DRAW = 2
     ONGOING = 3
     GAMEOVER = 4
+
+class Role(Enum):
+    PLAYER = 0
+    HOST = 1
 
 class SAPServer:
     res = {
@@ -31,9 +37,9 @@ class SAPServer:
         "slot": "resources/slot.png"
     }
 
-    def __init__(self):
-        icon_loc = pg.locateOnScreen(Image.open(self.res["icon"]), confidence=0.5)
-        
+    def __init__(self, role):
+        self.role = role
+        icon_loc = pg.locateOnScreen(Image.open(self.res["icon"]), confidence=0.5)        
         if (icon_loc is None):
             print("StateServer failed to find SAP window.")
             exit(1)
@@ -45,9 +51,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        pg.moveTo(ARENA_LOC, duration=0.5)
-        pg.doubleClick()
-        time.sleep(1)
+        self.join_private_match()
+        self.start_private_match()
+        #pg.moveTo(ARENA_LOC, duration=0.5)
+        #pg.doubleClick()
+        #time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A58)
@@ -55,7 +63,8 @@ class SAPServer:
 
     def press_button(self, loc):
         pg.moveTo(loc)
-        pg.click()
+        pg.doubleClick()
+        time.sleep(1)
 
     def click_center(self):
         pg.moveTo(ARENA_LOC)
@@ -154,3 +163,17 @@ class SAPServer:
         f, args = SAP_ACTION_FUNC[action]
         f(args)
         time.sleep(0.5)
+
+    def join_private_match(self):
+        self.press_button(VERSUS_LOC)
+        if (self.role is Role.HOST): self.press_button(CREATE_PRIVATE_LOC)
+        else:                   self.press_button(JOIN_PRIVATE_LOC)
+        pg.write(SAP_PRIVATE_GAME_NAME)
+        self.press_button(CONFIRM_PRIVATE_LOC)
+
+    def start_private_match(self):
+        if (self.role is Role.HOST):
+            self.press_button(START_GAME_LOC)
+        else:
+            while(pg.locate(Image.open(self.res["ten_gold"]), self.get_state(), confidence=0.95)):
+                time.sleep(5)

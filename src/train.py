@@ -16,9 +16,9 @@ ACTION_LIMIT = 20
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
 class ActorCriticTrainer:
-    def __init__(self, model):
+    def __init__(self, model, role):
         self.model = model
-        self.server = SAPServer()
+        self.server = SAPServer(role)
         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-6)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
