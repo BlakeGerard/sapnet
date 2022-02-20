@@ -175,9 +175,11 @@ class SAPServer:
 
     def start_private_match(self):
         if (self.role is Role.HOST):
-            while(pg.locate(Image.open(self.res["start_game"], self.get_state(), confidence=0.95) is None):
+            while(pg.locate(Image.open(self.res["start_game"]), self.get_state(), confidence=0.95) is None):
+                print("Waiting for opponents")
                 time.sleep(5)
             self.press_button(START_GAME_LOC)
         else:
-            while(pg.locate(Image.open(self.res["ten_gold"]), self.get_state(), confidence=0.95)):
+            while(pg.locate(Image.open(self.res["ten_gold"]), self.get_state(), confidence=0.95) is None):
+                print("Waiting for game to start")
                 time.sleep(5)
