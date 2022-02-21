@@ -50,7 +50,7 @@ class ActorCriticTrainer:
         for (log_prob, value), R in zip(self.action_history, returns):
             advantage = R - value.item()
             policy_losses.append(-log_prob * advantage)
-            value_losses.append(F.smooth_l1_loss(value.squeeze(0), torch.tensor([R])))
+            value_losses.append(F.huber_loss(value.squeeze(0), torch.tensor([R])))
 
         self.optimizer.zero_grad()
         loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
@@ -129,6 +129,7 @@ class ActorCriticTrainer:
 
                 # Update the model
                 self.update_model()
+                self.model.save()
 
                 turn += 1
                 if (battle_status is Battle.GAMEOVER):
@@ -137,10 +138,6 @@ class ActorCriticTrainer:
                 # Click off the end-of-battle screen and level pop-ups
                	self.server.click_center()
                 time.sleep(1)
-                self.server.click_center()
-                time.sleep(1)
-                self.server.click_center()
 
             cumulative_reward = 0.05 * run_reward + (1 - 0.05) * cumulative_reward
             print("Cumulative reward: ", cumulative_reward) 
-            self.model.save()

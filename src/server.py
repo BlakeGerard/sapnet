@@ -167,8 +167,14 @@ class SAPServer:
 
     def join_private_match(self):
         self.press_button(VERSUS_LOC)
-        if (self.role is Role.HOST): self.press_button(CREATE_PRIVATE_LOC)
-        else:                        self.press_button(JOIN_PRIVATE_LOC)
+        if (self.role is Role.PLAYER):
+            time.sleep(5)
+
+        if (self.role is Role.HOST): 
+           self.press_button(CREATE_PRIVATE_LOC)
+        else:
+           self.press_button(JOIN_PRIVATE_LOC)
+        
         self.press_button(ENTER_NAME_LOC)
         pg.write(SAP_PRIVATE_GAME_NAME)
         self.press_button(CONFIRM_PRIVATE_LOC)
