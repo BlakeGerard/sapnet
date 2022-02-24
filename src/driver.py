@@ -3,12 +3,14 @@ from server import *
 from sapnet import SAPNetActorCritic
 from os.path import exists
 
-load_path = "model/goddard.pt"
+load_path = "models/goddard.pt"
 role = Role.HOST
 
 def main():
 	model = SAPNetActorCritic("goddard")
-	if (exists(load_path)): model.load(load_path)
+	if (exists(load_path)):
+		print("Loading goddard") 
+		model.load(load_path)
 	trainer = ActorCriticTrainer(model, role)
 	trainer.train()
 

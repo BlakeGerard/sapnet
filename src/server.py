@@ -35,7 +35,8 @@ class SAPServer:
         "ten_gold": "resources/ten_gold.png",
         "gameover": "resources/gameover.png",
         "slot": "resources/slot.png",
-        "start_game": "resources/start_game.png"
+        "start_game": "resources/start_game.png",
+        "gold_sign": "resources/gold_sign.png"
     }
 
     def __init__(self, role):
@@ -52,11 +53,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        self.join_private_match()
-        self.start_private_match()
-        #pg.moveTo(ARENA_LOC, duration=0.2)
-        #pg.doubleClick()
-        #time.sleep(1)
+        #self.join_private_match()
+        #self.start_private_match()
+        pg.moveTo(ARENA_LOC, duration=0.2)
+        pg.doubleClick()
+        time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A58)
@@ -100,6 +101,12 @@ class SAPServer:
         gold_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=0.5)
         if (gold_search):
             self.start_battle()
+            return True
+        return False
+
+    def shop_ready(self, state):
+        sign_search = pg.locate(Image.open(self.res["gold_sign"]), state, confidence=0.95)
+        if (sign_search):
             return True
         return False
 
@@ -150,6 +157,7 @@ class SAPServer:
             return SAP_ACTION_TURN_THREE_MASK
         elif (turn < 9):
             return SAP_ACTION_TURN_FIVE_MASK
+        return SAP_ACTION_NO_MASK
 
     def reward(self, battle_status):
         assert(battle_status is not Battle.ONGOING)

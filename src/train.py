@@ -12,6 +12,8 @@ RUNS = 1000
 GAMMA = 0.999
 EPS = np.finfo(np.float32).eps.item()
 ACTION_LIMIT = 20
+LEARNING_RATE = 1e-6
+GRAD_CLIP_NORM = 5
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
@@ -19,7 +21,7 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-6)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.9)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -27,6 +29,7 @@ class ActorCriticTrainer:
         action_prob, state_value = self.model(state, mask)
         dist = Categorical(action_prob)
         index = dist.sample()
+        print(action_prob)
         self.action_history.append(SavedAction(dist.log_prob(index), state_value))
         return SAP_ACTION_SPACE[index]
 
@@ -36,8 +39,6 @@ class ActorCriticTrainer:
         value_losses = []
         returns = []
 
-        print("Action history: ", self.action_history)
-        print("Reward history: ", self.reward_history)
         print("Updating model")
 
         for r in self.reward_history[::-1]:
@@ -53,9 +54,13 @@ class ActorCriticTrainer:
             value_losses.append(F.huber_loss(value.squeeze(0), torch.tensor([R])))
 
         self.optimizer.zero_grad()
-        loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
-        print("Loss: ", loss.item())
+        policy_loss = torch.stack(policy_losses).sum()
+        value_loss = torch.stack(value_losses).sum()
+        loss = policy_loss + value_loss
+        print("Policy loss: ", policy_loss.item()),
+        print("Value loss:  ", value_loss.item())
         loss.backward()
+        nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
         self.optimizer.step()
         self.action_history.clear()
         self.reward_history.clear()
@@ -73,16 +78,25 @@ class ActorCriticTrainer:
             turn = 1
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
-            while(run_complete is False):
-                
+            while(run_complete is False):                
+
                 action = None
                 mask = None
                 state = self.server.get_state()
                 action_counter = 0
 
+                while(self.server.shop_ready(state) is False):
+                     print("Waiting for shop to be ready")
+                     self.server.click_center()
+                     time.sleep(1)
+                     state = self.server.get_state()
+
                 print("-------------------")
                 print("Beginning buy phase")
                 print("-------------------")
+
+                self.server.click_center()
+                state = self.server.get_state()
 
                 # Query network for actions while buy phase is ongoing
                 while(1):
@@ -134,10 +148,6 @@ class ActorCriticTrainer:
                 turn += 1
                 if (battle_status is Battle.GAMEOVER):
                     run_complete = True
-
-                # Click off the end-of-battle screen and level pop-ups
-               	self.server.click_center()
-                time.sleep(1)
 
             cumulative_reward = 0.05 * run_reward + (1 - 0.05) * cumulative_reward
             print("Cumulative reward: ", cumulative_reward) 

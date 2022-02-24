@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from torchvision.transforms.functional import get_image_num_channels, pil_to_tensor, normalize
 
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+MASK_VAL = -1000.0
 
 class MaskedSoftmax(nn.Module):
     def __init__(self):
@@ -19,8 +20,9 @@ class MaskedSoftmax(nn.Module):
 
     def forward(self, state, mask):
         state_masked = state.clone()
-        state_masked[mask == 0] = -float("inf")
-        return self.softmax(state_masked)
+        state_masked[mask == 0] = MASK_VAL
+        state_masked_normed = state_masked - torch.max(state_masked)
+        return self.softmax(state_masked_normed)
 
 class SAPNetActorCritic(nn.Module):
 
