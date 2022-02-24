@@ -181,6 +181,7 @@ SAP_ACTION_FUNC = {
 SAP_ACTION_SPACE = list(SAP_ACTION_FUNC.keys())
 
 SAP_ACTION_NO_MASK         = [1] * len(SAP_ACTION_SPACE)
+SAP_ACTION_NO_MASK[-1] = 0
 SAP_ACTION_LOW_GOLD_MASK   = [0 if i >= 10 and i <= 44 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
 SAP_ACTION_NO_PET_BUY_MASK = [0 if i >= 19 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
 SAP_ACTION_TURN_ONE_MASK   = [0 if i >= 25 and i <= 39 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
