@@ -11,9 +11,9 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 EPS = np.finfo(np.float32).eps.item()
-ACTION_LIMIT = 20
+ACTION_LIMIT = 25
 LEARNING_RATE = 1e-6
-GRAD_CLIP_NORM = 5
+GRAD_CLIP_NORM = 10
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
@@ -21,7 +21,7 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -78,7 +78,7 @@ class ActorCriticTrainer:
             turn = 1
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
-            while(run_complete is False):                
+            while(run_complete is False):
 
                 action = None
                 mask = None

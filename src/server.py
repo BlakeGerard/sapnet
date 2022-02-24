@@ -161,7 +161,9 @@ class SAPServer:
 
     def reward(self, battle_status):
         assert(battle_status is not Battle.ONGOING)
-        if (battle_status is Battle.WIN or battle_status is Battle.DRAW):
+        if (battle_status is Battle.WIN):
+            return 2
+        if (battle_status is Battle.DRAW):
             return 1
         if (battle_status is Battle.LOSS):
             return -1
