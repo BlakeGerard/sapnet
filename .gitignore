@@ -9,6 +9,7 @@ __pycache__/
 # vs code
 .vscode
 
+pass.txt
 models/
 
 # Distribution / packaging
