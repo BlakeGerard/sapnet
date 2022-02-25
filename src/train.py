@@ -2,6 +2,7 @@ from sapnet import *
 from server import *
 from action import SAP_ACTION_SPACE
 from collections import namedtuple
+import time
 
 import torch
 import torch.nn as nn
@@ -11,9 +12,9 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 EPS = np.finfo(np.float32).eps.item()
-ACTION_LIMIT = 25
+ACTION_LIMIT = 20
 LEARNING_RATE = 1e-6
-GRAD_CLIP_NORM = 10
+GRAD_CLIP_NORM = 1
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
@@ -21,7 +22,7 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -39,7 +40,7 @@ class ActorCriticTrainer:
         value_losses = []
         returns = []
 
-        print("Updating model")
+        print("Reward history: ", self.reward_history)
 
         for r in self.reward_history[::-1]:
             R = R * GAMMA + r
@@ -47,6 +48,8 @@ class ActorCriticTrainer:
 
         returns = torch.tensor(returns)
         returns = (returns - returns.mean()) / (returns.std() + EPS)
+
+        print("Returns: ", returns)
 
         for (log_prob, value), R in zip(self.action_history, returns):
             advantage = R - value.item()
@@ -127,21 +130,26 @@ class ActorCriticTrainer:
 
                 battle_status = Battle.ONGOING
 
+                start = time.time()
+
                 # Wait for the battle to finish
                 while(battle_status is Battle.ONGOING):
-                    time.sleep(5)
-
                     # Observe the new state
                     state = self.server.get_state()
                     battle_status = self.server.battle_status(state)
-                    print(battle_status)
                     
+                duration = (time.time() - start) - 10.0
+
                 # Grant rewards
-                reward = self.server.reward(battle_status)
+                reward = self.server.reward_default(battle_status)
+                print("Duration: ", duration)
+                print("Reward: ", reward)
                 run_reward += reward
-                self.reward_history = [reward] * len(self.action_history)
+                self.reward_history = [0] * len(self.action_history)
+                self.reward_history[-1] = reward
 
                 # Update the model
+                self.model.save_old()
                 self.update_model()
                 self.model.save()
 

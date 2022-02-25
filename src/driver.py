@@ -3,7 +3,7 @@ from server import *
 from sapnet import SAPNetActorCritic
 from os.path import exists
 
-load_path = "models/goddard.pt"
+load_path = "models/goddard.old.pt"
 role = Role.HOST
 
 def main():

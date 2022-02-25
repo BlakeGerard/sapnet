@@ -19,10 +19,10 @@ class MaskedSoftmax(nn.Module):
         self.softmax = nn.Softmax(1)
 
     def forward(self, state, mask):
-        state_masked = state.clone()
-        state_masked[mask == 0] = MASK_VAL
-        state_masked_normed = state_masked - torch.max(state_masked)
-        return self.softmax(state_masked_normed)
+        state_clone = state.clone()
+        state_normed = state_clone - torch.max(state_clone)
+        state_normed[mask == 0] = MASK_VAL
+        return self.softmax(state_normed)
 
 class SAPNetActorCritic(nn.Module):
 
@@ -33,13 +33,13 @@ class SAPNetActorCritic(nn.Module):
 
         self.layer1 = nn.Sequential(
             nn.Conv2d(3, 32, kernel_size = 5, stride = 1, padding = "same"),
-            nn.GELU(),
-            nn.MaxPool2d(kernel_size = 2, stride = 2)
+            nn.LeakyReLU(),
+            nn.AvgPool2d(kernel_size = 2, stride = 2)
         )
         self.layer2 = nn.Sequential(
             nn.Conv2d(32, 64, kernel_size = 5, stride = 1, padding = "same"),
-            nn.GELU(),
-            nn.MaxPool2d(kernel_size = 2, stride = 2)
+            nn.LeakyReLU(),
+            nn.AvgPool2d(kernel_size = 2, stride = 2)
         )
         self.flatten = nn.Flatten()
         self.fc1 = nn.Linear(64 * 150 * 240, n_actions)
@@ -65,6 +65,10 @@ class SAPNetActorCritic(nn.Module):
     def save(self):
 	    path = "models/" + self.name + ".pt"
 	    torch.save(self.state_dict(), path)
+
+    def save_old(self):
+        path = "models/" + self.name + ".old.pt"
+        torch.save(self.state_dict(), path)
 
     def load(self, path):
         self.load_state_dict(torch.load(path))

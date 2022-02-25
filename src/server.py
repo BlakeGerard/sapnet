@@ -11,11 +11,11 @@ from torchvision.transforms.functional import pil_to_tensor
 SAP_PRIVATE_GAME_NAME = "dogpark"
 
 class Battle(Enum):
-    WIN = 0
-    LOSS = 1
-    DRAW = 2
+    WIN = 2
+    DRAW = 1
+    LOSS = -1
+    GAMEOVER = 2
     ONGOING = 3
-    GAMEOVER = 4
 
 class Role(Enum):
     PLAYER = 0
@@ -53,11 +53,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        #self.join_private_match()
-        #self.start_private_match()
-        pg.moveTo(ARENA_LOC, duration=0.2)
-        pg.doubleClick()
-        time.sleep(1)
+        self.join_private_match()
+        self.start_private_match()
+        #pg.moveTo(ARENA_LOC, duration=0.2)
+        #pg.doubleClick()
+        #time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A58)
@@ -75,18 +75,22 @@ class SAPServer:
     def battle_status(self, state):
         victory_search = pg.locate(Image.open(self.res["victory"]), state, confidence=0.5)
         if (victory_search):
+            print("Victory")
             return Battle.WIN
 
         defeat_search = pg.locate(Image.open(self.res["defeat"]), state, confidence=0.5)
         if (defeat_search):
+            print("Defeat")
             return Battle.LOSS
 
         draw_search = pg.locate(Image.open(self.res["draw"]), state, confidence=0.5)
         if (draw_search):
+            print("Draw")
             return Battle.DRAW
 
         gameover_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.5)
         if (gameover_search):
+            print("Game Over")
             return Battle.GAMEOVER
 
         return Battle.ONGOING
@@ -159,15 +163,22 @@ class SAPServer:
             return SAP_ACTION_TURN_FIVE_MASK
         return SAP_ACTION_NO_MASK
 
-    def reward(self, battle_status):
-        assert(battle_status is not Battle.ONGOING)
+    def reward_default(self, battle_status):
+        ''' The default reward is to deliver the battle status enum value '''
         if (battle_status is Battle.WIN):
-            return 2
+            return 1
         if (battle_status is Battle.DRAW):
             return 1
         if (battle_status is Battle.LOSS):
             return -1
-        return 0
+        if (battle_status is Battle.GAMEOVER):
+            return 0
+
+    def reward_duration(self, battle_status, duration):
+        if (battle_status is Battle.GAMEOVER):
+            return 0
+        else:
+            return 0 + (battle_status.value * (10.0 - duration))
 
     def apply(self, action):
         """ Apply the given action in SAP """
