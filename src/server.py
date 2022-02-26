@@ -11,11 +11,11 @@ from torchvision.transforms.functional import pil_to_tensor
 SAP_PRIVATE_GAME_NAME = "dogpark"
 
 class Battle(Enum):
-    WIN = 2
+    WIN = 0
     DRAW = 1
-    LOSS = -1
-    GAMEOVER = 2
-    ONGOING = 3
+    LOSS = 2
+    GAMEOVER = 3
+    ONGOING = 4
 
 class Role(Enum):
     PLAYER = 0
@@ -53,14 +53,14 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        self.join_private_match()
-        self.start_private_match()
-        #pg.moveTo(ARENA_LOC, duration=0.2)
-        #pg.doubleClick()
-        #time.sleep(1)
+        #self.join_private_match()
+        #self.start_private_match()
+        pg.moveTo(ARENA_LOC, duration=0.2)
+        pg.doubleClick()
+        time.sleep(1)
 
     def start_battle(self, state):
-        self.apply(Action.A58)
+        self.apply(Action.A68)
         self.press_button(CONFIRM_LOC)
 
     def press_button(self, loc):
@@ -139,20 +139,7 @@ class SAPServer:
         # If we have gold < 3, mask off all buy actions
         if (self.low_gold(state)):
             print("Gold is low. Masking buy actions.")
-            return SAP_ACTION_LOW_GOLD_MASK
-
-        #t0_search = pg.locate(Image.open(self.res["slot"]), state, region = T0_REGION, confidence=0.1)
-        #t1_search = pg.locate(Image.open(self.res["slot"]), state, region = T1_REGION, confidence=0.1)
-        #t2_search = pg.locate(Image.open(self.res["slot"]), state, region = T2_REGION, confidence=0.1)
-        #t3_search = pg.locate(Image.open(self.res["slot"]), state, region = T3_REGION, confidence=0.1)
-        #t4_search = pg.locate(Image.open(self.res["slot"]), state, region = T4_REGION, confidence=0.1)
-        #if (t0_search is None and
-        #    t1_search is None and
-        #    t2_search is None and
-        #    t3_search is None and
-        #    t4_search is None):
-        #    print("Team is full. Masking pet buy actions.")
-        #    return SAP_ACTION_NO_PET_BUY_MASK
+            return SAP_ACTION_ALL_BUY_MASK
 
         # Otherwise, mask off specific buy actions by turn
         if (turn < 3):

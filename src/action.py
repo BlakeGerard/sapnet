@@ -2,26 +2,27 @@ from enum import Enum
 from slot import *
 import torch
 import pyautogui as pg
+import time
 
 def action_move(args):
     """ Move a team pet from slot args[0] to slot args[1] """
     assert(len(args) == 2)
     pg.moveTo(SLOT_LOC[args[0]], duration=0.2)
     pg.click()
-    pg.dragTo(SLOT_LOC[args[1]], duration=0.2)
+    pg.dragTo(SLOT_LOC[args[1]], duration=0.2, button="left")
 
 def action_buy(args):
     """ Buy the shop pet at args[0] and place in team position args[1] """
     assert(len(args) == 2)
     pg.moveTo(SLOT_LOC[args[0]], duration=0.2)
     pg.click()
-    pg.dragTo(SLOT_LOC[args[1]], duration=0.2)
+    pg.dragTo(SLOT_LOC[args[1]], duration=0.2, button="left")
 
 def action_sell(args):
     """ Sell the team pet at args """
     assert(args is not None)
     pg.moveTo(SLOT_LOC[args], duration=0.2)
-    pg.doubleClick()
+    pg.click()
     pg.moveTo(SELL_LOC, duration=0.2)
     pg.click()
 
@@ -29,7 +30,7 @@ def action_freeze(args):
     """ Freeze the shop pet at args """
     assert(args is not None)
     pg.moveTo(SLOT_LOC[args], duration=0.2)
-    pg.doubleClick()
+    pg.click()
     pg.moveTo(FREEZE_LOC, duration=0.2)
     pg.click()
 
@@ -105,6 +106,16 @@ class Action(Enum):
     A56 = 56
     A57 = 57
     A58 = 58
+    A59 = 59
+    A60 = 60
+    A61 = 61
+    A62 = 62
+    A63 = 63
+    A64 = 64
+    A65 = 65
+    A66 = 66
+    A67 = 67
+    A68 = 68
 
 SAP_ACTION_FUNC = {
 
@@ -113,94 +124,100 @@ SAP_ACTION_FUNC = {
     Action.A1  : (action_move, (Slot.T0, Slot.T2)),
     Action.A2  : (action_move, (Slot.T0, Slot.T3)),
     Action.A3  : (action_move, (Slot.T0, Slot.T4)),
-    Action.A4  : (action_move, (Slot.T1, Slot.T2)),
-    Action.A5  : (action_move, (Slot.T1, Slot.T3)),
-    Action.A6  : (action_move, (Slot.T1, Slot.T4)),
-    Action.A7  : (action_move, (Slot.T2, Slot.T3)),
-    Action.A8  : (action_move, (Slot.T2, Slot.T4)),
-    Action.A9  : (action_move, (Slot.T3, Slot.T4)),
+    Action.A4  : (action_move, (Slot.T1, Slot.T0)),
+    Action.A5  : (action_move, (Slot.T1, Slot.T2)),
+    Action.A6  : (action_move, (Slot.T1, Slot.T3)),
+    Action.A7  : (action_move, (Slot.T1, Slot.T4)),
+    Action.A8  : (action_move, (Slot.T2, Slot.T0)),
+    Action.A9  : (action_move, (Slot.T2, Slot.T1)),
+    Action.A10  : (action_move, (Slot.T2, Slot.T3)),
+    Action.A11  : (action_move, (Slot.T2, Slot.T4)),
+    Action.A12  : (action_move, (Slot.T3, Slot.T0)),
+    Action.A13  : (action_move, (Slot.T3, Slot.T1)),
+    Action.A14  : (action_move, (Slot.T3, Slot.T2)),
+    Action.A15  : (action_move, (Slot.T3, Slot.T4)),
+    Action.A16  : (action_move, (Slot.T4, Slot.T0)),
+    Action.A17  : (action_move, (Slot.T4, Slot.T1)),
+    Action.A18  : (action_move, (Slot.T4, Slot.T2)),
+    Action.A19  : (action_move, (Slot.T4, Slot.T3)),
 
     # Buy from a BUY_SLOT and move to a TEAM_SLOT
-    Action.A10 : (action_buy, (Slot.B0, Slot.T0)),
-    Action.A11 : (action_buy, (Slot.B0, Slot.T1)),
-    Action.A12 : (action_buy, (Slot.B0, Slot.T2)),
-    Action.A13 : (action_buy, (Slot.B0, Slot.T3)),
-    Action.A14 : (action_buy, (Slot.B0, Slot.T4)),
-    Action.A15 : (action_buy, (Slot.B1, Slot.T0)),
-    Action.A16 : (action_buy, (Slot.B1, Slot.T1)),
-    Action.A17 : (action_buy, (Slot.B1, Slot.T2)),
-    Action.A18 : (action_buy, (Slot.B1, Slot.T3)),
-    Action.A19 : (action_buy, (Slot.B1, Slot.T4)),
-    Action.A20 : (action_buy, (Slot.B2, Slot.T0)),
-    Action.A21 : (action_buy, (Slot.B2, Slot.T1)),
-    Action.A22 : (action_buy, (Slot.B2, Slot.T2)),
-    Action.A23 : (action_buy, (Slot.B2, Slot.T3)),
-    Action.A24 : (action_buy, (Slot.B2, Slot.T4)),
-    Action.A25 : (action_buy, (Slot.B3, Slot.T0)),
-    Action.A26 : (action_buy, (Slot.B3, Slot.T1)),
-    Action.A27 : (action_buy, (Slot.B3, Slot.T2)),
-    Action.A28 : (action_buy, (Slot.B3, Slot.T3)),
-    Action.A29 : (action_buy, (Slot.B3, Slot.T4)),
-    Action.A30 : (action_buy, (Slot.B4, Slot.T0)),
-    Action.A31 : (action_buy, (Slot.B4, Slot.T1)),
-    Action.A32 : (action_buy, (Slot.B4, Slot.T2)),
-    Action.A33 : (action_buy, (Slot.B4, Slot.T3)),
-    Action.A34 : (action_buy, (Slot.B4, Slot.T4)),
-    Action.A35 : (action_buy, (Slot.B5, Slot.T0)),
-    Action.A36 : (action_buy, (Slot.B5, Slot.T1)),
-    Action.A37 : (action_buy, (Slot.B5, Slot.T2)),
-    Action.A38 : (action_buy, (Slot.B5, Slot.T3)),
-    Action.A39 : (action_buy, (Slot.B5, Slot.T4)),
-    Action.A40 : (action_buy, (Slot.B6, Slot.T0)),
-    Action.A41 : (action_buy, (Slot.B6, Slot.T1)),
-    Action.A42 : (action_buy, (Slot.B6, Slot.T2)),
-    Action.A43 : (action_buy, (Slot.B6, Slot.T3)),
-    Action.A44 : (action_buy, (Slot.B6, Slot.T4)),
+    Action.A20 : (action_buy, (Slot.B0, Slot.T0)),
+    Action.A21 : (action_buy, (Slot.B0, Slot.T1)),
+    Action.A22 : (action_buy, (Slot.B0, Slot.T2)),
+    Action.A23 : (action_buy, (Slot.B0, Slot.T3)),
+    Action.A24 : (action_buy, (Slot.B0, Slot.T4)),
+    Action.A25 : (action_buy, (Slot.B1, Slot.T0)),
+    Action.A26 : (action_buy, (Slot.B1, Slot.T1)),
+    Action.A27 : (action_buy, (Slot.B1, Slot.T2)),
+    Action.A28 : (action_buy, (Slot.B1, Slot.T3)),
+    Action.A29 : (action_buy, (Slot.B1, Slot.T4)),
+    Action.A30 : (action_buy, (Slot.B2, Slot.T0)),
+    Action.A31 : (action_buy, (Slot.B2, Slot.T1)),
+    Action.A32 : (action_buy, (Slot.B2, Slot.T2)),
+    Action.A33 : (action_buy, (Slot.B2, Slot.T3)),
+    Action.A34 : (action_buy, (Slot.B2, Slot.T4)),
+    Action.A35 : (action_buy, (Slot.B3, Slot.T0)),
+    Action.A36 : (action_buy, (Slot.B3, Slot.T1)),
+    Action.A37 : (action_buy, (Slot.B3, Slot.T2)),
+    Action.A38 : (action_buy, (Slot.B3, Slot.T3)),
+    Action.A39 : (action_buy, (Slot.B3, Slot.T4)),
+    Action.A40 : (action_buy, (Slot.B4, Slot.T0)),
+    Action.A41 : (action_buy, (Slot.B4, Slot.T1)),
+    Action.A42 : (action_buy, (Slot.B4, Slot.T2)),
+    Action.A43 : (action_buy, (Slot.B4, Slot.T3)),
+    Action.A44 : (action_buy, (Slot.B4, Slot.T4)),
+    Action.A45 : (action_buy, (Slot.B5, Slot.T0)),
+    Action.A46 : (action_buy, (Slot.B5, Slot.T1)),
+    Action.A47 : (action_buy, (Slot.B5, Slot.T2)),
+    Action.A48 : (action_buy, (Slot.B5, Slot.T3)),
+    Action.A49 : (action_buy, (Slot.B5, Slot.T4)),
+    Action.A50 : (action_buy, (Slot.B6, Slot.T0)),
+    Action.A51 : (action_buy, (Slot.B6, Slot.T1)),
+    Action.A52 : (action_buy, (Slot.B6, Slot.T2)),
+    Action.A53 : (action_buy, (Slot.B6, Slot.T3)),
+    Action.A54 : (action_buy, (Slot.B6, Slot.T4)),
 
     # Sell a team pet
-    Action.A45 : (action_sell, (Slot.T0)),
-    Action.A46 : (action_sell, (Slot.T1)),
-    Action.A47 : (action_sell, (Slot.T2)),
-    Action.A48 : (action_sell, (Slot.T3)),
-    Action.A49 : (action_sell, (Slot.T4)),
+    Action.A55 : (action_sell, (Slot.T0)),
+    Action.A56 : (action_sell, (Slot.T1)),
+    Action.A57 : (action_sell, (Slot.T2)),
+    Action.A58 : (action_sell, (Slot.T3)),
+    Action.A59 : (action_sell, (Slot.T4)),
 
     # Freeze a shop pet
-    Action.A50 : (action_freeze, (Slot.B0)),
-    Action.A51 : (action_freeze, (Slot.B1)),
-    Action.A52 : (action_freeze, (Slot.B2)),
-    Action.A53 : (action_freeze, (Slot.B3)),
-    Action.A54 : (action_freeze, (Slot.B4)),
-    Action.A55 : (action_freeze, (Slot.B5)),
-    Action.A56 : (action_freeze, (Slot.B6)),
+    Action.A60 : (action_freeze, (Slot.B0)),
+    Action.A61 : (action_freeze, (Slot.B1)),
+    Action.A62 : (action_freeze, (Slot.B2)),
+    Action.A63 : (action_freeze, (Slot.B3)),
+    Action.A64 : (action_freeze, (Slot.B4)),
+    Action.A65 : (action_freeze, (Slot.B5)),
+    Action.A66 : (action_freeze, (Slot.B6)),
 
     # Roll and end
-    Action.A57 : (action_roll, None),
-    Action.A58 : (action_end, None)
+    Action.A67 : (action_roll, None),
+    Action.A68 : (action_end, None)
 }
 
 SAP_ACTION_SPACE = list(SAP_ACTION_FUNC.keys())
 
 SAP_ACTION_NO_MASK         = [1] * len(SAP_ACTION_SPACE)
-SAP_ACTION_NO_MASK[-1] = 0
-SAP_ACTION_LOW_GOLD_MASK   = [0 if i >= 10 and i <= 44 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-SAP_ACTION_NO_PET_BUY_MASK = [0 if i >= 19 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-SAP_ACTION_TURN_ONE_MASK   = [0 if i >= 25 and i <= 39 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-SAP_ACTION_TURN_THREE_MASK = [0 if i >= 25 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-SAP_ACTION_TURN_FIVE_MASK  = [0 if i >= 30 and i <= 34 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-#SAP_ACTION_T0_MASK         = [0 if i >= 10 and i <= 49 and (i-0) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-#SAP_ACTION_T1_MASK         = [0 if i >= 10 and i <= 49 and (i-1) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-#SAP_ACTION_T2_MASK         = [0 if i >= 10 and i <= 49 and (i-2) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-#SAP_ACTION_T3_MASK         = [0 if i >= 10 and i <= 49 and (i-3) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
-#SAP_ACTION_T4_MASK         = [0 if i >= 10 and i <= 49 and (i-4) % 5 == 0 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+#SAP_ACTION_NO_MASK[-1] = 0
+
+# Mask all buy actions when gold is low
+SAP_ACTION_ALL_BUY_MASK    = [0 if i >= 20 and i <= 54 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+
+# Mask buy slots 3, 4, 5
+SAP_ACTION_TURN_ONE_MASK   = [0 if i >= 36 and i <= 49 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+
+# Mask buy slots 3, 4
+SAP_ACTION_TURN_THREE_MASK = [0 if i >= 36 and i <= 44 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
+
+# Mask buy slot 4
+SAP_ACTION_TURN_FIVE_MASK  = [0 if i >= 40 and i <= 44 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
 
 SAP_ACTION_NO_MASK         = torch.tensor(SAP_ACTION_NO_MASK).unsqueeze(0)
-SAP_ACTION_LOW_GOLD_MASK   = torch.tensor(SAP_ACTION_LOW_GOLD_MASK).unsqueeze(0)
-SAP_ACTION_NO_PET_BUY_MASK = torch.tensor(SAP_ACTION_NO_PET_BUY_MASK).unsqueeze(0)
+SAP_ACTION_ALL_BUY_MASK   = torch.tensor(SAP_ACTION_ALL_BUY_MASK).unsqueeze(0)
 SAP_ACTION_TURN_ONE_MASK   = torch.tensor(SAP_ACTION_TURN_ONE_MASK).unsqueeze(0)
 SAP_ACTION_TURN_THREE_MASK = torch.tensor(SAP_ACTION_TURN_THREE_MASK).unsqueeze(0)
 SAP_ACTION_TURN_FIVE_MASK  = torch.tensor(SAP_ACTION_TURN_FIVE_MASK).unsqueeze(0)
-#SAP_ACTION_T0_MASK         = torch.tensor(SAP_ACTION_T0_MASK).unsqueeze(0)
-#SAP_ACTION_T1_MASK         = torch.tensor(SAP_ACTION_T1_MASK).unsqueeze(0)
-#SAP_ACTION_T2_MASK         = torch.tensor(SAP_ACTION_T2_MASK).unsqueeze(0)
-#SAP_ACTION_T3_MASK         = torch.tensor(SAP_ACTION_T3_MASK).unsqueeze(0)
-#SAP_ACTION_T4_MASK         = torch.tensor(SAP_ACTION_T4_MASK).unsqueeze(0)

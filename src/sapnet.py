@@ -8,10 +8,11 @@ from datetime import datetime
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision.transforms as tv
 from torchvision.transforms.functional import get_image_num_channels, pil_to_tensor, normalize
 
 #device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MASK_VAL = -1000.0
+MASK_VAL = -10000.0
 
 class MaskedSoftmax(nn.Module):
     def __init__(self):
@@ -31,14 +32,16 @@ class SAPNetActorCritic(nn.Module):
         self.name = name
         n_actions = len(SAP_ACTION_SPACE)
 
+        self.transform = tv.ToTensor()
+
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size = 5, stride = 1, padding = "same"),
-            nn.LeakyReLU(),
+            nn.Conv2d(3, 32, kernel_size = 5, stride = 1, padding='same'),
+            nn.Tanh(),
             nn.AvgPool2d(kernel_size = 2, stride = 2)
         )
         self.layer2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size = 5, stride = 1, padding = "same"),
-            nn.LeakyReLU(),
+            nn.Conv2d(32, 64, kernel_size = 5, stride = 1, padding='same'),
+            nn.Tanh(),
             nn.AvgPool2d(kernel_size = 2, stride = 2)
         )
         self.flatten = nn.Flatten()
@@ -48,16 +51,16 @@ class SAPNetActorCritic(nn.Module):
         self.critic_head = nn.Linear(n_actions, 1)
     
     def forward(self, image, mask):
-        state = pil_to_tensor(image).float()
-        means = [state[i:,:,].mean() for i in range(get_image_num_channels(state))]
-        stds = [state[i:,:,].std()  for i in range(get_image_num_channels(state))]
-        normalize(state, means, stds, True)
+        print(self.layer1.weight)
+        state = self.transform(image)
         state = state.unsqueeze(0)
+        print(state)
         state = self.layer1(state)
+        print(state)
         state = self.layer2(state)
         state = self.flatten(state)
         state = self.fc1(state)
-        state = self.dropout(state)
+        #state = self.dropout(state)
         action_prob = self.action_head(state, mask)
         state_value = self.critic_head(state)
        	return action_prob, state_value

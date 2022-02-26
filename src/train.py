@@ -64,6 +64,10 @@ class ActorCriticTrainer:
         print("Value loss:  ", value_loss.item())
         loss.backward()
         nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
+
+        for name, param in self.model.named_parameters():
+           print(name, torch.isfinite(param.grad).all())
+
         self.optimizer.step()
         self.action_history.clear()
         self.reward_history.clear()
@@ -95,7 +99,7 @@ class ActorCriticTrainer:
                      state = self.server.get_state()
 
                 print("-------------------")
-                print("Beginning buy phase")
+                print("Beginning turn", turn)
                 print("-------------------")
 
                 self.server.click_center()
@@ -110,7 +114,12 @@ class ActorCriticTrainer:
                     # Select and record an action based on the current shop state
                     action = self.select_action(state, mask)
 
-                    if (action == Action.A58 or action_counter == ACTION_LIMIT or self.server.zero_gold(state)):
+                    if (action == Action.A68):
+                        print("Agent chose to end turn")        
+                        self.server.start_battle(state)
+                        break
+                    if (action_counter == ACTION_LIMIT):
+                        print("Reached action limit")
                         self.server.start_battle(state)
                         break
 
