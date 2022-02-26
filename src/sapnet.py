@@ -51,16 +51,13 @@ class SAPNetActorCritic(nn.Module):
         self.critic_head = nn.Linear(n_actions, 1)
     
     def forward(self, image, mask):
-        print(self.layer1.weight)
         state = self.transform(image)
         state = state.unsqueeze(0)
-        print(state)
         state = self.layer1(state)
-        print(state)
         state = self.layer2(state)
         state = self.flatten(state)
         state = self.fc1(state)
-        #state = self.dropout(state)
+        state = self.dropout(state)
         action_prob = self.action_head(state, mask)
         state_value = self.critic_head(state)
        	return action_prob, state_value
