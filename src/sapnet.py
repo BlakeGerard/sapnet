@@ -9,10 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as tv
-from torchvision.transforms.functional import get_image_num_channels, pil_to_tensor, normalize
 
-#device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-MASK_VAL = -10000.0
+EPS = np.finfo(np.float32).eps.item()
 N_ACTIONS = len(SAP_ACTION_SPACE)
 
 class MaskedSoftmax(nn.Module):
@@ -23,7 +21,7 @@ class MaskedSoftmax(nn.Module):
     def forward(self, state, mask):
         state_clone = state.clone()
         state_normed = state_clone - torch.max(state_clone)
-        state_normed[mask == 0] = MASK_VAL
+        state_normed[mask == 0] = EPS
         return self.softmax(state_normed)
 
 class SAPNetActorCritic(nn.Module):
@@ -47,8 +45,6 @@ class SAPNetActorCritic(nn.Module):
             nn.ReLU()
         )
 
-# 64 * 150 * 240
-
         self.flatten = nn.Flatten()
         self.gru = nn.GRU(32 * 150 * 240, self.hidden_size, self.gru_layers, batch_first=True)
         self.fc = nn.Linear(self.hidden_size, N_ACTIONS)
@@ -57,19 +53,19 @@ class SAPNetActorCritic(nn.Module):
     
     def forward(self, image, hidden, mask):
         state = self.transform(image).unsqueeze(0)
-        print(state.shape)
+        #print(state.shape)
         state = self.layer1(state)
-        print(state.shape)
+        #print(state.shape)
         state = self.layer2(state)
-        print(state.shape)
+        #print(state.shape)
         state = self.flatten(state).unsqueeze(0)
-        print(state.shape)
+        #print(state.shape)
         state, hidden = self.gru(state, hidden)
-        print(state.shape)
+        #print(state.shape)
         state = state.squeeze(0)
-        print(state.shape)
+        #print(state.shape)
         state = self.fc(state)
-        print(state.shape)
+        #print(state.shape)
         action_prob = self.action_head(state, mask)
         state_value = self.critic_head(state)
        	return action_prob, state_value, hidden
@@ -89,4 +85,3 @@ class SAPNetActorCritic(nn.Module):
 
     def load(self, path):
         self.load_state_dict(torch.load(path))
-        #self.eval()

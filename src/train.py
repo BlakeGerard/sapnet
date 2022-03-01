@@ -11,10 +11,9 @@ from torch.distributions import Categorical
 
 RUNS = 1000
 GAMMA = 0.999
-EPS = np.finfo(np.float32).eps.item()
 ACTION_LIMIT = 18
 LEARNING_RATE = 1e-6
-GRAD_CLIP_NORM = 1
+GRAD_CLIP_NORM = 5
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
 
@@ -54,7 +53,7 @@ class ActorCriticTrainer:
         for (log_prob, value), R in zip(self.action_history, returns):
             advantage = R - value.item()
             policy_losses.append(-log_prob * advantage)
-            value_losses.append(F.mse_loss(value.squeeze(0), torch.tensor([R])))
+            value_losses.append(F.smooth_l1_loss(value.squeeze(0), torch.tensor([R])))
 
         self.optimizer.zero_grad()
         policy_loss = torch.stack(policy_losses).sum()
@@ -63,7 +62,7 @@ class ActorCriticTrainer:
         print("Policy loss: ", policy_loss.item()),
         print("Value loss:  ", value_loss.item())
         loss.backward()
-        #nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
+        nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
 
         self.optimizer.step()
         self.action_history.clear()
@@ -89,6 +88,7 @@ class ActorCriticTrainer:
                 mask = None
                 state = self.server.get_state()
                 action_counter = 0
+                shop_time_ended = False
 
                 while(self.server.shop_ready(state) is False):
                      print("Waiting for shop to be ready")
@@ -100,16 +100,16 @@ class ActorCriticTrainer:
                 print("Beginning turn", turn)
                 print("-------------------")
 
-                self.server.click_center()
-                state = self.server.get_state()
-
-                # Query network for actions while buy phase is ongoing
+                # SHOP PHASE
                 while(1):
+
+                    # Fetch the shop state
+                    state = self.server.get_state()
 
                     # Select an action mask based on turn and gold amount
                     mask = self.server.get_appropriate_mask(state, turn)
 
-                    # Select and record an action based on the current shop state
+                    # Feed the shop state to the network
                     action, hidden = self.select_action(state, hidden, mask)
                     hidden = hidden.detach()
 
@@ -121,15 +121,15 @@ class ActorCriticTrainer:
                         print("Reached action limit")
                         self.server.start_battle(state)
                         break
+                    if (self.server.shop_ready(state) is False):
+                        print("Ran out of time")
+                        break
 
                     # Apply the action (also waits 1 second)
                     print("Applying: ", action)
                     self.server.apply(action)
 
-                    # Observe the new state
-                    state = self.server.get_state()
-
-                    # Check if agent as zero gold or has selected End Turn
+                    # Increment action_counter
                     action_counter += 1
 
                 print("----------------------")
@@ -138,19 +138,13 @@ class ActorCriticTrainer:
 
                 battle_status = Battle.ONGOING
 
-                start = time.time()
-
-                # Wait for the battle to finish
+                # BATTLE PHASE
                 while(battle_status is Battle.ONGOING):
-                    # Observe the new state
                     state = self.server.get_state()
                     battle_status = self.server.battle_status(state)
                     
-                duration = (time.time() - start) - 10.0
-
-                # Grant rewards
+                # UPDATE PHASE
                 reward = self.server.reward_default(battle_status)
-                print("Duration: ", duration)
                 print("Reward: ", reward)
                 run_reward += reward
                 self.reward_history = [0] * len(self.action_history)
