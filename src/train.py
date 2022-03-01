@@ -157,9 +157,9 @@ class ActorCriticTrainer:
 
                 turn += 1
                 if (battle_status is Battle.GAMEOVER):
-                    self.server.click_center()
+                    while(self.server.run_complete(self.server.get_state()) is False):
+                        self.server.click_center()
                     run_complete = True
-                    time.sleep(3)
 
             cumulative_reward = 0.05 * run_reward + (1 - 0.05) * cumulative_reward
             print("Cumulative reward: ", cumulative_reward) 
