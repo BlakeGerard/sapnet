@@ -12,7 +12,7 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 EPS = np.finfo(np.float32).eps.item()
-ACTION_LIMIT = 20
+ACTION_LIMIT = 18
 LEARNING_RATE = 1e-6
 GRAD_CLIP_NORM = 1
 
@@ -22,17 +22,17 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
-    def select_action(self, state, mask):
-        action_prob, state_value = self.model(state, mask)
+    def select_action(self, image, hidden, mask):
+        action_prob, state_value, hidden = self.model(image, hidden, mask)
         dist = Categorical(action_prob)
         index = dist.sample()
         print(action_prob)
         self.action_history.append(SavedAction(dist.log_prob(index), state_value))
-        return SAP_ACTION_SPACE[index]
+        return SAP_ACTION_SPACE[index], hidden
 
     def update_model(self):
         R = 0
@@ -54,7 +54,7 @@ class ActorCriticTrainer:
         for (log_prob, value), R in zip(self.action_history, returns):
             advantage = R - value.item()
             policy_losses.append(-log_prob * advantage)
-            value_losses.append(F.huber_loss(value.squeeze(0), torch.tensor([R])))
+            value_losses.append(F.mse_loss(value.squeeze(0), torch.tensor([R])))
 
         self.optimizer.zero_grad()
         policy_loss = torch.stack(policy_losses).sum()
@@ -63,10 +63,7 @@ class ActorCriticTrainer:
         print("Policy loss: ", policy_loss.item()),
         print("Value loss:  ", value_loss.item())
         loss.backward()
-        nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
-
-        for name, param in self.model.named_parameters():
-           print(name, torch.isfinite(param.grad).all())
+        #nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
 
         self.optimizer.step()
         self.action_history.clear()
@@ -83,6 +80,7 @@ class ActorCriticTrainer:
             run_complete = False
             run_reward = 0
             turn = 1
+            hidden = self.model.init_hidden(1)
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
             while(run_complete is False):
@@ -112,7 +110,8 @@ class ActorCriticTrainer:
                     mask = self.server.get_appropriate_mask(state, turn)
 
                     # Select and record an action based on the current shop state
-                    action = self.select_action(state, mask)
+                    action, hidden = self.select_action(state, hidden, mask)
+                    hidden = hidden.detach()
 
                     if (action == Action.A68):
                         print("Agent chose to end turn")        
