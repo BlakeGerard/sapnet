@@ -34,6 +34,7 @@ SLOT_LOC = {
     Slot.B6 : (720, 400)
 }
 
+HOVER_LOC = (480, 50)
 ARENA_LOC = (480, 300)
 CONFIRM_LOC = (630, 400)
 ROLL_LOC = (120, 580)

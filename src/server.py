@@ -53,11 +53,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        self.join_private_match()
-        self.start_private_match()
-        #pg.moveTo(ARENA_LOC, duration=0.2)
-        #pg.doubleClick()
-        #time.sleep(1)
+        #self.join_private_match()
+        #self.start_private_match()
+        pg.moveTo(ARENA_LOC, duration=0.2)
+        pg.doubleClick()
+        time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A68)
@@ -171,7 +171,11 @@ class SAPServer:
         """ Apply the given action in SAP """
         f, args = SAP_ACTION_FUNC[action]
         f(args)
+        self.hover()
         time.sleep(0.5)
+
+    def hover(self):
+        pg.moveTo(HOVER_LOC, duration=0.2)
 
     def join_private_match(self):
         self.press_button(VERSUS_LOC)

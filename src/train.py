@@ -11,8 +11,8 @@ from torch.distributions import Categorical
 
 RUNS = 1000
 GAMMA = 0.999
-ACTION_LIMIT = 18
-LEARNING_RATE = 1e-6
+ACTION_LIMIT = 15
+LEARNING_RATE = 1e-4
 GRAD_CLIP_NORM = 5
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])

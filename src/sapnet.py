@@ -10,6 +10,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as tv
 
+MASK_VAL = -float("inf")
 EPS = np.finfo(np.float32).eps.item()
 N_ACTIONS = len(SAP_ACTION_SPACE)
 
@@ -21,7 +22,7 @@ class MaskedSoftmax(nn.Module):
     def forward(self, state, mask):
         state_clone = state.clone()
         state_normed = state_clone - torch.max(state_clone)
-        state_normed[mask == 0] = EPS
+        state_normed[mask == 0] = MASK_VAL
         return self.softmax(state_normed)
 
 class SAPNetActorCritic(nn.Module):
