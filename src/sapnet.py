@@ -17,11 +17,10 @@ N_ACTIONS = len(SAP_ACTION_SPACE)
 class MaskedSoftmax(nn.Module):
     def __init__(self):
         super(MaskedSoftmax, self).__init__()
-        self.softmax = nn.Softmax(1)
+        self.softmax = nn.Softmax(dim = -1)
 
     def forward(self, state, mask):
-        state_clone = state.clone()
-        state_normed = state_clone - torch.max(state_clone)
+        state_normed = state - torch.max(state)
         state_normed[mask == 0] = MASK_VAL
         return self.softmax(state_normed)
 
@@ -36,12 +35,12 @@ class SAPNetActorCritic(nn.Module):
         self.transform = tv.ToTensor()
 
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size = 5, stride = 1, padding='same'),
+            nn.Conv2d(3, 16, kernel_size = 5, stride = 1, padding='same'),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
             nn.ReLU()
         )
         self.layer2 = nn.Sequential(
-            nn.Conv2d(32, 32, kernel_size = 5, stride = 1, padding='same'),
+            nn.Conv2d(16, 32, kernel_size = 5, stride = 1, padding='same'),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
             nn.ReLU()
         )
@@ -54,9 +53,9 @@ class SAPNetActorCritic(nn.Module):
     
     def forward(self, image, hidden, mask):
         state = self.transform(image).unsqueeze(0)
-        #print(state.shape)
+        #print(state)
         state = self.layer1(state)
-        #print(state.shape)
+        #print(state)
         state = self.layer2(state)
         #print(state.shape)
         state = self.flatten(state).unsqueeze(0)

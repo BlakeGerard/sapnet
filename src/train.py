@@ -12,7 +12,7 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 ACTION_LIMIT = 15
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-5
 GRAD_CLIP_NORM = 5
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -42,7 +42,7 @@ class ActorCriticTrainer:
         print("Reward history: ", self.reward_history)
 
         for r in self.reward_history[::-1]:
-            R = R * GAMMA + r
+            R = r + GAMMA * R
             returns.insert(0, R)
 
         returns = torch.tensor(returns)
@@ -55,20 +55,26 @@ class ActorCriticTrainer:
             policy_losses.append(-log_prob * advantage)
             value_losses.append(F.smooth_l1_loss(value.squeeze(0), torch.tensor([R])))
 
-        self.optimizer.zero_grad()
+
         policy_loss = torch.stack(policy_losses).sum()
         value_loss = torch.stack(value_losses).sum()
         loss = policy_loss + value_loss
+
         print("Policy loss: ", policy_loss.item()),
         print("Value loss:  ", value_loss.item())
+
+        print("detect_anomaly enabled: ", torch.is_anomaly_enabled()) 
+        self.optimizer.zero_grad()
         loss.backward()
         nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
-
         self.optimizer.step()
+
         self.action_history.clear()
         self.reward_history.clear()
 
     def train(self):
+        torch.autograd.set_detect_anomaly(True)
+
         cumulative_reward = 0
 
         # For RUNS many Arena runs.
@@ -83,6 +89,8 @@ class ActorCriticTrainer:
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
             while(run_complete is False):
+
+                print(self.model.layer1[0].weight)
 
                 action = None
                 mask = None
@@ -150,15 +158,18 @@ class ActorCriticTrainer:
                 self.reward_history = [0] * len(self.action_history)
                 self.reward_history[-1] = reward
 
-                # Update the model
                 self.model.save_old()
-                self.update_model()
-                self.model.save()
+
+                # Update the model
+                if (battle_status is not Battle.GAMEOVER):
+                    self.update_model()
+                    self.model.save()
 
                 turn += 1
                 if (battle_status is Battle.GAMEOVER):
                     while(self.server.run_complete(self.server.get_state()) is False):
-                        self.server.click_center()
+                        self.server.click_top()
+                        time.sleep(1)
                     run_complete = True
 
             cumulative_reward = 0.05 * run_reward + (1 - 0.05) * cumulative_reward

@@ -53,11 +53,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        #self.join_private_match()
-        #self.start_private_match()
-        pg.moveTo(ARENA_LOC, duration=0.2)
-        pg.doubleClick()
-        time.sleep(1)
+        self.join_private_match()
+        self.start_private_match()
+        #pg.moveTo(ARENA_LOC, duration=0.2)
+        #pg.doubleClick()
+        #time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A68)
@@ -70,6 +70,10 @@ class SAPServer:
 
     def click_center(self):
         pg.moveTo(ARENA_LOC)
+        pg.click()
+
+    def click_top(self):
+        pg.moveTo(HOVER_LOC)
         pg.click()
 
     def battle_status(self, state):
