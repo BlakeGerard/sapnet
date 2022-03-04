@@ -20,9 +20,10 @@ class MaskedSoftmax(nn.Module):
         self.softmax = nn.Softmax(dim = -1)
 
     def forward(self, state, mask):
-        state_normed = state - torch.max(state)
-        state_normed[mask == 0] = MASK_VAL
-        return self.softmax(state_normed)
+        state_stable = state.clone()
+        state_stable = state_stable - torch.max(state_stable)
+        state_stable[mask == 0] = MASK_VAL
+        return self.softmax(state_stable)
 
 class SAPNetActorCritic(nn.Module):
 
@@ -32,40 +33,41 @@ class SAPNetActorCritic(nn.Module):
         self.gru_layers = 1
         self.hidden_size = 64
 
-        self.transform = tv.ToTensor()
+        self.transform = tv.Compose([
+            tv.ToTensor(),
+            tv.Normalize(mean=(0.5,0.5,0.5), std=(0.5,0.5,0.5))
+        ])
 
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 16, kernel_size = 5, stride = 1, padding='same'),
+            nn.Conv2d(3, 16, kernel_size = 5, stride = 1),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
         self.layer2 = nn.Sequential(
-            nn.Conv2d(16, 32, kernel_size = 5, stride = 1, padding='same'),
+            nn.Conv2d(16, 32, kernel_size = 5, stride = 1),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
-            nn.ReLU()
+            nn.LeakyReLU()
         )
 
         self.flatten = nn.Flatten()
-        self.gru = nn.GRU(32 * 150 * 240, self.hidden_size, self.gru_layers, batch_first=True)
-        self.fc = nn.Linear(self.hidden_size, N_ACTIONS)
+        self.gru = nn.GRU(32 * 147 * 237, self.hidden_size, self.gru_layers, batch_first=True)
+        
+        self.layer3 = nn.Sequential(
+            nn.Linear(self.hidden_size, N_ACTIONS),
+            nn.LeakyReLU()
+        )
+        
         self.action_head = MaskedSoftmax()
         self.critic_head = nn.Linear(N_ACTIONS, 1)
     
     def forward(self, image, hidden, mask):
         state = self.transform(image).unsqueeze(0)
-        #print(state)
         state = self.layer1(state)
-        #print(state)
         state = self.layer2(state)
-        #print(state.shape)
         state = self.flatten(state).unsqueeze(0)
-        #print(state.shape)
         state, hidden = self.gru(state, hidden)
-        #print(state.shape)
         state = state.squeeze(0)
-        #print(state.shape)
-        state = self.fc(state)
-        #print(state.shape)
+        state = self.layer3(state)
         action_prob = self.action_head(state, mask)
         state_value = self.critic_head(state)
        	return action_prob, state_value, hidden

@@ -53,11 +53,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        self.join_private_match()
-        self.start_private_match()
-        #pg.moveTo(ARENA_LOC, duration=0.2)
-        #pg.doubleClick()
-        #time.sleep(1)
+        #self.join_private_match()
+        #self.start_private_match()
+        pg.moveTo(ARENA_LOC, duration=0.2)
+        pg.doubleClick()
+        time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A68)
@@ -169,7 +169,13 @@ class SAPServer:
         if (battle_status is Battle.GAMEOVER):
             return 0
         else:
-            return 0 + (battle_status.value * (10.0 - duration))
+            print("Duration: ", duration)
+            base = 0
+            if (battle_status is Battle.WIN or battle_status is Battle.DRAW):
+                 base = 1
+            elif (battle_status is Battle.LOSS):
+                 base = -1
+            return base * (20.0 - duration)
 
     def apply(self, action):
         """ Apply the given action in SAP """

@@ -12,16 +12,20 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 ACTION_LIMIT = 15
-LEARNING_RATE = 1e-5
-GRAD_CLIP_NORM = 5
+LEARNING_RATE = 1e-6
+GRAD_CLIP_VAL = 1
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
+
+def animate_loss(iteration, policy_loss, value_loss):
+    total_loss = policy_loss + value_loss
+    x.append(iteration)
 
 class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.1)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -33,13 +37,20 @@ class ActorCriticTrainer:
         self.action_history.append(SavedAction(dist.log_prob(index), state_value))
         return SAP_ACTION_SPACE[index], hidden
 
+    def animate_loss(self, turn):
+        x = np.arange(0, turn)
+        self.loss_ax.clear()
+        self.loss_ax.plot(x, self.policy_loss_history)
+        self.loss_ax.plot(x, self.value_loss_history)
+        self.loss_ax.plot(x, np.asarray(self.policy_loss_history) + np.asarray(self.value_loss_history))
+
     def update_model(self):
         R = 0
         policy_losses = []
         value_losses = []
         returns = []
 
-        print("Reward history: ", self.reward_history)
+        print("Action history: ", self.action_history)
 
         for r in self.reward_history[::-1]:
             R = r + GAMMA * R
@@ -55,18 +66,20 @@ class ActorCriticTrainer:
             policy_losses.append(-log_prob * advantage)
             value_losses.append(F.smooth_l1_loss(value.squeeze(0), torch.tensor([R])))
 
-
         policy_loss = torch.stack(policy_losses).sum()
         value_loss = torch.stack(value_losses).sum()
         loss = policy_loss + value_loss
 
-        print("Policy loss: ", policy_loss.item()),
-        print("Value loss:  ", value_loss.item())
-
-        print("detect_anomaly enabled: ", torch.is_anomaly_enabled()) 
+        loss_file = open("loss.txt", "a") 
+        loss_file.write("Policy loss: {}\n".format(policy_loss.item()))
+        loss_file.write("Value loss: {}\n".format(value_loss.item()))
+        loss_file.write("Total loss: {}\n".format(loss.item()))
+        loss_file.write("---------------\n")
+        loss_file.close()
+ 
         self.optimizer.zero_grad()
         loss.backward()
-        nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_NORM)
+        nn.utils.clip_grad_value_(self.model.parameters(), GRAD_CLIP_VAL)
         self.optimizer.step()
 
         self.action_history.clear()
@@ -89,8 +102,6 @@ class ActorCriticTrainer:
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
             while(run_complete is False):
-
-                print(self.model.layer1[0].weight)
 
                 action = None
                 mask = None
@@ -145,14 +156,17 @@ class ActorCriticTrainer:
                 print("----------------------")
 
                 battle_status = Battle.ONGOING
+                battle_start = time.time()
 
                 # BATTLE PHASE
                 while(battle_status is Battle.ONGOING):
                     state = self.server.get_state()
                     battle_status = self.server.battle_status(state)
                     
+                battle_duration = time.time() - battle_start
+
                 # UPDATE PHASE
-                reward = self.server.reward_default(battle_status)
+                reward = self.server.reward_duration(battle_status, battle_duration)
                 print("Reward: ", reward)
                 run_reward += reward
                 self.reward_history = [0] * len(self.action_history)
@@ -164,6 +178,8 @@ class ActorCriticTrainer:
                 if (battle_status is not Battle.GAMEOVER):
                     self.update_model()
                     self.model.save()
+                    #loss_animation = FuncAnimation(self.loss_fig, self.animate_loss, frames=20, interval=500, repeat=False)
+                    #plt.show()
 
                 turn += 1
                 if (battle_status is Battle.GAMEOVER):
