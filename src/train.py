@@ -12,7 +12,7 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 ACTION_LIMIT = 15
-LEARNING_RATE = 1e-6
+LEARNING_RATE = 1e-4
 GRAD_CLIP_VAL = 1
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -25,7 +25,8 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.1)
+        #self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.1)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE, eps=1e-6, amsgrad=True)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -50,21 +51,22 @@ class ActorCriticTrainer:
         value_losses = []
         returns = []
 
-        print("Action history: ", self.action_history)
-
         for r in self.reward_history[::-1]:
             R = r + GAMMA * R
             returns.insert(0, R)
 
         returns = torch.tensor(returns)
-        returns = (returns - returns.mean()) / (returns.std() + EPS)
+        returns = (returns - returns.mean()) / (returns.std() + 1e-6)
 
         print("Returns: ", returns)
 
         for (log_prob, value), R in zip(self.action_history, returns):
             advantage = R - value.item()
             policy_losses.append(-log_prob * advantage)
-            value_losses.append(F.smooth_l1_loss(value.squeeze(0), torch.tensor([R])))
+            value_losses.append(F.huber_loss(value, torch.tensor([R]).unsqueeze(0)))
+
+        print(policy_losses)
+        print(value_losses)
 
         policy_loss = torch.stack(policy_losses).sum()
         value_loss = torch.stack(value_losses).sum()
@@ -76,9 +78,13 @@ class ActorCriticTrainer:
         loss_file.write("Total loss: {}\n".format(loss.item()))
         loss_file.write("---------------\n")
         loss_file.close()
- 
+
         self.optimizer.zero_grad()
         loss.backward()
+
+        for name, param in self.model.named_parameters():
+            print(name, torch.isfinite(param.grad).all(), torch.min(param.grad), torch.max(param.grad))
+
         nn.utils.clip_grad_value_(self.model.parameters(), GRAD_CLIP_VAL)
         self.optimizer.step()
 
@@ -126,11 +132,10 @@ class ActorCriticTrainer:
                     state = self.server.get_state()
 
                     # Select an action mask based on turn and gold amount
-                    mask = self.server.get_appropriate_mask(state, turn)
+                    mask = self.server.get_appropriate_mask(state, turn, action_counter)
 
                     # Feed the shop state to the network
                     action, hidden = self.select_action(state, hidden, mask)
-                    hidden = hidden.detach()
 
                     if (action == Action.A68):
                         print("Agent chose to end turn")        
@@ -155,10 +160,13 @@ class ActorCriticTrainer:
                 print("Beginning battle phase")
                 print("----------------------")
 
-                battle_status = Battle.ONGOING
+                while(self.server.battle_ready(self.server.get_state()) is False):
+                    print("Waiting for battle to start")
+
                 battle_start = time.time()
 
                 # BATTLE PHASE
+                battle_status = Battle.ONGOING
                 while(battle_status is Battle.ONGOING):
                     state = self.server.get_state()
                     battle_status = self.server.battle_status(state)

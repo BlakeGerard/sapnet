@@ -11,6 +11,7 @@ def main():
 	if (exists(load_path)):
 		print("Loading goddard") 
 		model.load(load_path)
+
 	trainer = ActorCriticTrainer(model, role)
 	trainer.train()
 

@@ -36,7 +36,8 @@ class SAPServer:
         "gameover": "resources/gameover.png",
         "slot": "resources/slot.png",
         "start_game": "resources/start_game.png",
-        "gold_sign": "resources/gold_sign.png"
+        "gold_sign": "resources/gold_sign.png",
+        "pause_button": "resources/pause_button.png"
     }
 
     def __init__(self, role):
@@ -75,6 +76,12 @@ class SAPServer:
     def click_top(self):
         pg.moveTo(HOVER_LOC)
         pg.click()
+
+    def battle_ready(self, state):
+        pause_search = pg.locate(Image.open(self.res["pause_button"]), state, confidence=0.95)
+        if (pause_search is not None):
+            return True
+        return False
 
     def battle_status(self, state):
         victory_search = pg.locate(Image.open(self.res["victory"]), state, confidence=0.5)
@@ -138,21 +145,28 @@ class SAPServer:
             return True
         return False
 
-    def get_appropriate_mask(self, state, turn):
+    def get_appropriate_mask(self, state, turn, step):
 
         # If we have gold < 3, mask off all buy actions
         if (self.low_gold(state)):
             print("Gold is low. Masking buy actions.")
-            return SAP_ACTION_ALL_BUY_MASK
+            return SAP_ACTION_ALL_BUY_MASK.clone()
 
-        # Otherwise, mask off specific buy actions by turn
+        # Otherwise, construct a mask
+        mask = SAP_ACTION_NO_MASK.clone()
+
+        if (step < 2):
+            mask[:,-1] = 0
+
         if (turn < 3):
-            return SAP_ACTION_TURN_ONE_MASK
+            mask = SAP_ACTION_TURN_ONE_MASK * mask
         elif (turn < 5):
-            return SAP_ACTION_TURN_THREE_MASK
+            mask = SAP_ACTION_TURN_THREE_MASK * mask
         elif (turn < 9):
-            return SAP_ACTION_TURN_FIVE_MASK
-        return SAP_ACTION_NO_MASK
+            mask = SAP_ACTION_TURN_FIVE_MASK * mask
+
+        print(mask)
+        return mask
 
     def reward_default(self, battle_status):
         ''' The default reward is to deliver the battle status enum value '''

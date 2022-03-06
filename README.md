@@ -1,2 +1,2 @@
 # sapnet
-Decision Transformer for playing Super Auto Pets
+RCNN Trained with Actor Critic method for playing Super Auto Pets
