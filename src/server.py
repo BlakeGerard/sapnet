@@ -37,7 +37,8 @@ class SAPServer:
         "slot": "resources/slot.png",
         "start_game": "resources/start_game.png",
         "gold_sign": "resources/gold_sign.png",
-        "pause_button": "resources/pause_button.png"
+        "pause_button": "resources/pause_button.png",
+        "roll": "resources/roll.png"
     }
 
     def __init__(self, role):
@@ -120,7 +121,7 @@ class SAPServer:
         return False
 
     def shop_ready(self, state):
-        sign_search = pg.locate(Image.open(self.res["gold_sign"]), state, confidence=0.95)
+        sign_search = pg.locate(Image.open(self.res["roll"]), state, confidence=0.95)
         if (sign_search):
             return True
         return False
@@ -146,16 +147,12 @@ class SAPServer:
         return False
 
     def get_appropriate_mask(self, state, turn, step):
+        mask = SAP_ACTION_NO_MASK.clone()
 
-        # If we have gold < 3, mask off all buy actions
         if (self.low_gold(state)):
             print("Gold is low. Masking buy actions.")
             return SAP_ACTION_ALL_BUY_MASK.clone()
-
-        # Otherwise, construct a mask
-        mask = SAP_ACTION_NO_MASK.clone()
-
-        if (step < 2):
+        else:
             mask[:,-1] = 0
 
         if (turn < 3):
@@ -189,14 +186,13 @@ class SAPServer:
                  base = 1
             elif (battle_status is Battle.LOSS):
                  base = -1
-            return base * (20.0 - duration)
+            return base * (12.0 - duration)
 
     def apply(self, action):
         """ Apply the given action in SAP """
         f, args = SAP_ACTION_FUNC[action]
         f(args)
         self.hover()
-        time.sleep(0.5)
 
     def hover(self):
         pg.moveTo(HOVER_LOC, duration=0.2)

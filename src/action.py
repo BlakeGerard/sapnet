@@ -6,21 +6,18 @@ import time
 
 def action_move(args):
     """ Move a team pet from slot args[0] to slot args[1] """
-    assert(len(args) == 2)
     pg.moveTo(SLOT_LOC[args[0]], duration=0.2)
     pg.click()
     pg.dragTo(SLOT_LOC[args[1]], duration=0.2, button="left")
 
 def action_buy(args):
     """ Buy the shop pet at args[0] and place in team position args[1] """
-    assert(len(args) == 2)
     pg.moveTo(SLOT_LOC[args[0]], duration=0.2)
     pg.click()
     pg.dragTo(SLOT_LOC[args[1]], duration=0.2, button="left")
 
 def action_sell(args):
     """ Sell the team pet at args """
-    assert(args is not None)
     pg.moveTo(SLOT_LOC[args], duration=0.2)
     pg.click()
     pg.moveTo(SELL_LOC, duration=0.2)
@@ -28,7 +25,6 @@ def action_sell(args):
 
 def action_freeze(args):
     """ Freeze the shop pet at args """
-    assert(args is not None)
     pg.moveTo(SLOT_LOC[args], duration=0.2)
     pg.click()
     pg.moveTo(FREEZE_LOC, duration=0.2)
@@ -36,13 +32,11 @@ def action_freeze(args):
 
 def action_roll(args):
     """ Roll """
-    assert(args is None)
     pg.moveTo(ROLL_LOC, duration=0.2)
     pg.doubleClick()
 
 def action_end(args):
     """ End turn """
-    assert(args is None)
     pg.moveTo(END_LOC, duration=0.2)
     pg.click()
 

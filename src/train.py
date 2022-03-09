@@ -11,8 +11,8 @@ from torch.distributions import Categorical
 
 RUNS = 1000
 GAMMA = 0.999
-ACTION_LIMIT = 15
-LEARNING_RATE = 1e-4
+ACTION_LIMIT = 20
+LEARNING_RATE = 1e-2
 GRAD_CLIP_VAL = 1
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -25,8 +25,8 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        #self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.1)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE, eps=1e-6, amsgrad=True)
+        #self.optimizer = optim.SGD(self.model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -82,10 +82,10 @@ class ActorCriticTrainer:
         self.optimizer.zero_grad()
         loss.backward()
 
-        for name, param in self.model.named_parameters():
-            print(name, torch.isfinite(param.grad).all(), torch.min(param.grad), torch.max(param.grad))
+        #for name, param in self.model.named_parameters():
+        #    print(name, torch.isfinite(param.grad).all(), torch.min(param.grad), torch.max(param.grad))
 
-        nn.utils.clip_grad_value_(self.model.parameters(), GRAD_CLIP_VAL)
+        nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_VAL)
         self.optimizer.step()
 
         self.action_history.clear()
@@ -180,10 +180,10 @@ class ActorCriticTrainer:
                 self.reward_history = [0] * len(self.action_history)
                 self.reward_history[-1] = reward
 
-                self.model.save_old()
 
                 # Update the model
                 if (battle_status is not Battle.GAMEOVER):
+                    self.model.save_old()
                     self.update_model()
                     self.model.save()
                     #loss_animation = FuncAnimation(self.loss_fig, self.animate_loss, frames=20, interval=500, repeat=False)

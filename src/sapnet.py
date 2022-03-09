@@ -35,8 +35,8 @@ class SAPNetActorCritic(nn.Module):
     def __init__(self, name):
         super(SAPNetActorCritic, self).__init__()
         self.name = name
-        self.gru_layers = 1
-        self.hidden_size = 64
+        self.gru_layers = 256
+        self.hidden_size = 128
 
         self.transform = tv.Compose([
             tv.ToTensor(),
@@ -44,25 +44,25 @@ class SAPNetActorCritic(nn.Module):
         ])
 
         self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size = 5, stride = 1),
+            nn.Conv2d(3, 8, kernel_size = 3, stride = 1),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
             nn.LeakyReLU()
         )
 
         self.layer2 = nn.Sequential(
-            nn.Conv2d(8, 16, kernel_size = 5, stride = 1),
+            nn.Conv2d(8, 16, kernel_size = 3, stride = 1),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
             nn.LeakyReLU()
         )
 
         #self.layer3 = nn.Sequential(
-        #    nn.Conv2d(16, 32, kernel_size = 5, stride = 1),
+        #    nn.Conv2d(16, 32, kernel_size = 3, stride = 1),
         #    nn.MaxPool2d(kernel_size = 2, stride = 2),
         #    nn.LeakyReLU()
         #)
 
         self.flatten = nn.Flatten()
-        self.gru = nn.GRU(16 * 147 * 237, self.hidden_size, self.gru_layers, batch_first=True)
+        self.gru = nn.GRU(16 * 148 * 238, self.hidden_size, self.gru_layers, batch_first=True)
         
         self.layer4 = nn.Sequential(
             nn.Linear(self.hidden_size, N_ACTIONS),
