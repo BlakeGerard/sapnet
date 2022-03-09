@@ -5,6 +5,11 @@ SAP_WINDOW_T = 30
 SAP_WINDOW_W = 960
 SAP_WINDOW_H = 600
 
+SAP_SHOP_L = 190
+SAP_SHOP_T = 175
+SAP_SHOP_W = 580
+SAP_SHOP_H = 300
+
 class Slot(Enum):
     T0 = 0
     T1 = 1

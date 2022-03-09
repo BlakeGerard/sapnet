@@ -36,7 +36,7 @@ class SAPServer:
         "gameover": "resources/gameover.png",
         "slot": "resources/slot.png",
         "start_game": "resources/start_game.png",
-        "gold_sign": "resources/gold_sign.png",
+        "battle_sign": "resources/battle_sign.png",
         "pause_button": "resources/pause_button.png",
         "roll": "resources/roll.png"
     }
@@ -50,9 +50,14 @@ class SAPServer:
 
         self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, 
                            SAP_WINDOW_W, SAP_WINDOW_H)
+        self.shop_loc = (SAP_SHOP_L, SAP_SHOP_T, 
+                         SAP_SHOP_W, SAP_SHOP_H)
 
-    def get_state(self):
+    def get_full_state(self):
         return pg.screenshot(region=self.window_loc)
+
+    def get_shop_state(self):
+        return pg.screenshot(region=self.shop_loc)
 
     def start_run(self):
         #self.join_private_match()

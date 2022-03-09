@@ -48,44 +48,46 @@ class SAPNetActorCritic(nn.Module):
             nn.MaxPool2d(kernel_size = 2, stride = 2),
             nn.LeakyReLU()
         )
+        self.layer1.apply(init_weights)
 
         self.layer2 = nn.Sequential(
             nn.Conv2d(8, 16, kernel_size = 3, stride = 1),
             nn.MaxPool2d(kernel_size = 2, stride = 2),
             nn.LeakyReLU()
         )
-
-        #self.layer3 = nn.Sequential(
-        #    nn.Conv2d(16, 32, kernel_size = 3, stride = 1),
-        #    nn.MaxPool2d(kernel_size = 2, stride = 2),
-        #    nn.LeakyReLU()
-        #)
+        self.layer2.apply(init_weights)
 
         self.flatten = nn.Flatten()
-        self.gru = nn.GRU(16 * 148 * 238, self.hidden_size, self.gru_layers, batch_first=True)
-        
-        self.layer4 = nn.Sequential(
+
+        self.gru = nn.GRU(16 * 73 * 143, self.hidden_size, self.gru_layers, batch_first=True)
+        self.gru.apply(init_weights)        
+
+        self.action_head = nn.Sequential(
             nn.Linear(self.hidden_size, N_ACTIONS),
-            nn.LeakyReLU()
+            nn.LeakyReLU(),
         )
-        
-        self.action_head = MaskedSoftmax()
-        self.critic_head = nn.Linear(N_ACTIONS, 1)
-    
+        self.action_head.apply(init_weights)
+        self.masked_softmax = MaskedSoftmax()
+
+        self.value_head = nn.Sequential(
+            nn.Linear(self.hidden_size, 20),
+            nn.LeakyReLU(),
+            nn.Linear(20, 1)
+        )
+        self.value_head.apply(init_weights)
+
     def forward(self, image, hidden, mask):
         state = self.transform(image)
         state = state.unsqueeze(0)
         state = self.layer1(state)
         state = self.layer2(state)
-        #state = self.layer3(state)
         state = self.flatten(state)
         state = state.unsqueeze(0)
         state, hidden = self.gru(state, hidden)
         hidden = hidden.detach()
         state = state.squeeze(0)
-        state = self.layer4(state)
-        action_prob = self.action_head(state, mask)
-        state_value = self.critic_head(state)
+        action_prob = self.masked_softmax(self.action_head(state), mask)
+        state_value = self.value_head(state)
        	return action_prob, state_value, hidden
 
     def init_hidden(self, batch_size=1):
