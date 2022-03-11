@@ -19,6 +19,16 @@ def init_weights(m):
         nn.init.xavier_uniform_(m.weight)
         m.bias.data.fill_(0.01)
 
+class RnnPreproc(nn.Module):
+    def __init__(self):
+        super(RnnPreproc, self).__init__()
+        self.flatten = nn.Flatten(start_dim=1)
+
+    def forward(self, state):
+        state = self.flatten(state)
+        state = state.unsqueeze(1)
+        return state
+
 class MaskedSoftmax(nn.Module):
     def __init__(self):
         super(MaskedSoftmax, self).__init__()
@@ -36,7 +46,8 @@ class SAPNetActorCritic(nn.Module):
         super(SAPNetActorCritic, self).__init__()
         self.name = name
         self.gru_layers = 256
-        self.hidden_size = 128
+        self.hidden_size = 256
+        self.hidden = None
 
         self.transform = tv.Compose([
             tv.ToTensor(),
@@ -57,38 +68,32 @@ class SAPNetActorCritic(nn.Module):
         )
         self.layer2.apply(init_weights)
 
-        self.flatten = nn.Flatten()
+        self.rnn_preproc = RnnPreproc()
 
-        self.gru = nn.GRU(16 * 73 * 143, self.hidden_size, self.gru_layers, batch_first=True)
-        self.gru.apply(init_weights)        
+        self.gru = nn.GRU(16 * 73 * 143, self.hidden_size, self.gru_layers)
+        self.gru.apply(init_weights)
 
-        self.action_head = nn.Sequential(
-            nn.Linear(self.hidden_size, N_ACTIONS),
-            nn.LeakyReLU(),
-        )
+        self.fc = nn.Linear(self.hidden_size, N_ACTIONS)  
+        self.fc.apply(init_weights)
+
+        self.action_head = MaskedSoftmax()
         self.action_head.apply(init_weights)
-        self.masked_softmax = MaskedSoftmax()
 
-        self.value_head = nn.Sequential(
-            nn.Linear(self.hidden_size, 20),
-            nn.LeakyReLU(),
-            nn.Linear(20, 1)
-        )
+        self.value_head = nn.Linear(N_ACTIONS, 1)
         self.value_head.apply(init_weights)
 
-    def forward(self, image, hidden, mask):
+    def forward(self, image, mask):
         state = self.transform(image)
-        state = state.unsqueeze(0)
+        state = state.unsqueeze(0)    # Add batch dimension
         state = self.layer1(state)
         state = self.layer2(state)
-        state = self.flatten(state)
-        state = state.unsqueeze(0)
-        state, hidden = self.gru(state, hidden)
-        hidden = hidden.detach()
-        state = state.squeeze(0)
-        action_prob = self.masked_softmax(self.action_head(state), mask)
+        state = self.rnn_preproc(state)
+        state, self.hidden = self.gru(state, self.hidden)
+        state = state.squeeze(0)      # Remove batch dimension
+        state = self.fc(state)
+        action_prob = self.action_head(state, mask)
         state_value = self.value_head(state)
-       	return action_prob, state_value, hidden
+       	return action_prob, state_value
 
     def init_hidden(self, batch_size=1):
         weight = next(self.parameters()).data

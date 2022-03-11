@@ -12,8 +12,8 @@ from torch.distributions import Categorical
 RUNS = 1000
 GAMMA = 0.999
 ACTION_LIMIT = 20
-LEARNING_RATE = 1e-3
-GRAD_CLIP_VAL = 1
+LEARNING_RATE = 1e-4
+GRAD_CLIP_VAL = 5
 E = 0.2
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
@@ -31,13 +31,13 @@ class ActorCriticTrainer:
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
-    def select_action(self, image, hidden, mask):
-        action_prob, state_value, hidden = self.model(image, hidden, mask)
+    def select_action(self, image, mask):
+        action_prob, state_value = self.model(image, mask)
         dist = Categorical(action_prob)
         index = dist.sample()
         print(action_prob)
         self.action_history.append(SavedAction(dist.log_prob(index), state_value))
-        return SAP_ACTION_SPACE[index], hidden
+        return SAP_ACTION_SPACE[index]
 
     def animate_loss(self, turn):
         x = np.arange(0, turn)
@@ -82,8 +82,7 @@ class ActorCriticTrainer:
 
         self.optimizer.zero_grad()
         loss.backward()
-
-        #nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_VAL)
+        nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_VAL)
         self.optimizer.step()
 
         self.action_history.clear()
@@ -146,8 +145,6 @@ class ActorCriticTrainer:
         self.reward_history.clear()
 
     def train(self):
-        torch.autograd.set_detect_anomaly(True)
-
         cumulative_reward = 0
 
         # For RUNS many Arena runs.
@@ -159,7 +156,6 @@ class ActorCriticTrainer:
             run_complete = False
             run_reward = 0
             turn = 1
-            hidden = self.model.init_hidden(1)
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
             while(run_complete is False):
@@ -179,6 +175,8 @@ class ActorCriticTrainer:
                 print("Beginning turn", turn)
                 print("-------------------")
 
+                self.model.hidden = self.model.init_hidden(1)
+
                 # SHOP PHASE
                 while(1):
 
@@ -187,7 +185,7 @@ class ActorCriticTrainer:
 
                     # Feed the shop state to the network
                     state = self.server.get_shop_state()
-                    action, hidden = self.select_action(state, hidden, mask)
+                    action = self.select_action(state, mask)
 
                     if (action == Action.A68):
                         print("Agent chose to end turn")        
