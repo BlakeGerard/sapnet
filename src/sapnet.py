@@ -70,7 +70,7 @@ class SAPNetActorCritic(nn.Module):
 
         self.rnn_preproc = RnnPreproc()
 
-        self.gru = nn.GRU(16 * 73 * 143, self.hidden_size, self.gru_layers)
+        self.gru = nn.GRU(16 * 95 * 118, self.hidden_size, self.gru_layers)
         self.gru.apply(init_weights)
 
         self.fc = nn.Linear(self.hidden_size, N_ACTIONS)  

@@ -27,7 +27,6 @@ class ActorCriticTrainer:
         self.model = model
         self.server = SAPServer(role)
         self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
-        self.old_action_history = deque([], maxlen=ACTION_LIMIT)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -184,7 +183,7 @@ class ActorCriticTrainer:
                     mask = self.server.get_appropriate_mask(self.server.get_full_state(), turn, action_counter)
 
                     # Feed the shop state to the network
-                    state = self.server.get_shop_state()
+                    state = self.server.get_full_state()
                     action = self.select_action(state, mask)
 
                     if (action == Action.A68):
