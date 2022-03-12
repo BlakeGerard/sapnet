@@ -87,25 +87,25 @@ class SAPServer:
             print("Victory")
             return Battle.WIN
 
-        arena_won_search = pg.locate(Image.open(self.res["arena_won"]), state, confidence=0.9)
-        if (arena_won_search):
-            print("Arena Won")
-            return Battle.WIN
-
         defeat_search = pg.locate(Image.open(self.res["defeat"]), state, confidence=0.9)
         if (defeat_search):
             print("Defeat")
-            return Battle.LOSS
-
-        arena_lost_serch = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.9)
-        if (arena_lost_search):
-            print("Arena Lost")
             return Battle.LOSS
 
         draw_search = pg.locate(Image.open(self.res["draw"]), state, confidence=0.9)
         if (draw_search):
             print("Draw")
             return Battle.DRAW
+
+        arena_won_search = pg.locate(Image.open(self.res["arena_won"]), state, confidence=0.9)
+        if (arena_won_search):
+            print("Arena Won")
+            return Battle.WIN
+
+        arena_lost_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.9)
+        if (arena_lost_search):
+            print("Arena Lost")
+            return Battle.LOSS
 
         return Battle.ONGOING
 
