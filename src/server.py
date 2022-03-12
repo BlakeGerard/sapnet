@@ -14,8 +14,9 @@ class Battle(Enum):
     WIN = 0
     DRAW = 1
     LOSS = 2
-    GAMEOVER = 3
-    ONGOING = 4
+    RUN_WIN = 3
+    RUN_LOSS = 4
+    ONGOING = 5
 
 class Role(Enum):
     PLAYER = 0
@@ -99,13 +100,13 @@ class SAPServer:
 
         arena_won_search = pg.locate(Image.open(self.res["arena_won"]), state, confidence=0.9)
         if (arena_won_search):
-            print("Arena Won")
-            return Battle.WIN
+            print("Run Won")
+            return Battle.RUN_WIN
 
         arena_lost_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.9)
         if (arena_lost_search):
-            print("Arena Lost")
-            return Battle.LOSS
+            print("Run Lost")
+            return Battle.RUN_LOSS
 
         return Battle.ONGOING
 
@@ -181,9 +182,9 @@ class SAPServer:
     def reward_duration(self, battle_status, duration):
         print("Duration: ", duration)
         base = 0
-        if (battle_status is Battle.WIN or battle_status is Battle.DRAW):
+        if (battle_status is Battle.WIN or battle_status is Battle.RUN_WIN or battle_status is Battle.DRAW):
             base = 1
-        elif (battle_status is Battle.LOSS):
+        elif (battle_status is Battle.LOSS or battle_status is Battle.RUN_LOSS):
             base = -1
         return base * (12.0 - duration)
 

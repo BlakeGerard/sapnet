@@ -219,7 +219,7 @@ class ActorCriticTrainer:
                 while(battle_status is Battle.ONGOING):
                     state = self.server.get_full_state()
                     battle_status = self.server.battle_status(state)
-                    
+
                 battle_duration = time.time() - battle_start
 
                 # UPDATE PHASE
@@ -231,13 +231,11 @@ class ActorCriticTrainer:
 
 
                 # Update the model
-                if (battle_status is not Battle.GAMEOVER):
-                    self.model.save_old()
-                    self.update_model_pg()
-                    self.model.save()
+                self.update_model_pg()
+                self.model.save()
 
                 turn += 1
-                if (battle_status is Battle.GAMEOVER):
+                if (battle_status is Battle.RUN_WIN or battle_status is Battle.RUN_LOSS):
                     while(self.server.run_complete(self.server.get_full_state()) is False):
                         self.server.click_top()
                         time.sleep(1)
