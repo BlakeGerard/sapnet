@@ -33,16 +33,17 @@ class SAPServer:
         "two_gold": "resources/two_gold.png",
         "ten_gold": "resources/ten_gold.png",
         "gameover": "resources/gameover.png",
+        "arena_won": "resources/arena_won.png",
         "pause_button": "resources/pause_button.png",
         "roll": "resources/roll.png"
     }
 
     def __init__(self, role):
         self.role = role
-        icon_loc = pg.locateOnScreen(Image.open(self.res["icon"]), confidence=0.9)        
-        if (icon_loc is None):
-            print("StateServer failed to find SAP window.")
-            exit(1)
+        #icon_loc = pg.locateOnScreen(Image.open(self.res["icon"]), confidence=0.9)        
+        #if (icon_loc is None):
+        #    print("StateServer failed to find SAP window.")
+        #    exit(1)
 
         self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, 
                            SAP_WINDOW_W, SAP_WINDOW_H)
@@ -86,20 +87,25 @@ class SAPServer:
             print("Victory")
             return Battle.WIN
 
+        arena_won_search = pg.locate(Image.open(self.res["arena_won"]), state, confidence=0.9)
+        if (arena_won_search):
+            print("Arena Won")
+            return Battle.WIN
+
         defeat_search = pg.locate(Image.open(self.res["defeat"]), state, confidence=0.9)
         if (defeat_search):
             print("Defeat")
+            return Battle.LOSS
+
+        arena_lost_serch = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.9)
+        if (arena_lost_search):
+            print("Arena Lost")
             return Battle.LOSS
 
         draw_search = pg.locate(Image.open(self.res["draw"]), state, confidence=0.9)
         if (draw_search):
             print("Draw")
             return Battle.DRAW
-
-        gameover_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.9)
-        if (gameover_search):
-            print("Game Over")
-            return Battle.GAMEOVER
 
         return Battle.ONGOING
 
@@ -173,16 +179,13 @@ class SAPServer:
             return 0
 
     def reward_duration(self, battle_status, duration):
-        if (battle_status is Battle.GAMEOVER):
-            return 0
-        else:
-            print("Duration: ", duration)
-            base = 0
-            if (battle_status is Battle.WIN or battle_status is Battle.DRAW):
-                 base = 1
-            elif (battle_status is Battle.LOSS):
-                 base = -1
-            return base * (12.0 - duration)
+        print("Duration: ", duration)
+        base = 0
+        if (battle_status is Battle.WIN or battle_status is Battle.DRAW):
+            base = 1
+        elif (battle_status is Battle.LOSS):
+            base = -1
+        return base * (12.0 - duration)
 
     def apply(self, action):
         """ Apply the given action in SAP """
