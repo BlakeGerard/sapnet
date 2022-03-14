@@ -45,8 +45,8 @@ class SAPNetActorCritic(nn.Module):
     def __init__(self, name):
         super(SAPNetActorCritic, self).__init__()
         self.name = name
-        self.gru_layers = 256
-        self.hidden_size = 256
+        self.gru_layers = 1
+        self.hidden_size = 512
         self.hidden = None
 
         self.transform = tv.Compose([
@@ -73,7 +73,7 @@ class SAPNetActorCritic(nn.Module):
         self.gru = nn.GRU(16 * 95 * 118, self.hidden_size, self.gru_layers)
         self.gru.apply(init_weights)
 
-        self.fc = nn.Linear(self.hidden_size, N_ACTIONS)  
+        self.fc = nn.Linear(self.hidden_size, N_ACTIONS)
         self.fc.apply(init_weights)
 
         self.action_head = MaskedSoftmax()

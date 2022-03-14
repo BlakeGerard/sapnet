@@ -1,7 +1,7 @@
 from enum import Enum 
 
 SAP_WINDOW_L = 0
-SAP_WINDOW_T = 30
+SAP_WINDOW_T = 41
 SAP_WINDOW_W = 480
 SAP_WINDOW_H = 386   # 416 - 30
 

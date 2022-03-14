@@ -9,10 +9,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 
+torch.backends.cudnn.benchmark = True
+
 RUNS = 1000
-GAMMA = 0.999
+GAMMA = 0.90
 ACTION_LIMIT = 20
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 3e-4
 GRAD_CLIP_VAL = 5
 E = 0.2
 
@@ -26,7 +28,7 @@ class ActorCriticTrainer:
     def __init__(self, model, role):
         self.model = model
         self.server = SAPServer(role)
-        self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
+        self.optimizer = optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
@@ -79,7 +81,7 @@ class ActorCriticTrainer:
         loss_file.write("---------------\n")
         loss_file.close()
 
-        self.optimizer.zero_grad()
+        self.optimizer.zero_grad(set_to_none=True)
         loss.backward()
         nn.utils.clip_grad_norm_(self.model.parameters(), GRAD_CLIP_VAL)
         self.optimizer.step()
