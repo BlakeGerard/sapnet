@@ -46,7 +46,7 @@ class SAPNetActorCritic(nn.Module):
         super(SAPNetActorCritic, self).__init__()
         self.name = name
         self.gru_layers = 1
-        self.hidden_size = 512
+        self.hidden_size = 256
         self.hidden = None
 
         self.transform = tv.Compose([
@@ -70,7 +70,7 @@ class SAPNetActorCritic(nn.Module):
 
         self.rnn_preproc = RnnPreproc()
 
-        self.gru = nn.GRU(16 * 95 * 118, self.hidden_size, self.gru_layers)
+        self.gru = nn.GRU(16 * 102 * 118, self.hidden_size, self.gru_layers)
         self.gru.apply(init_weights)
 
         self.fc = nn.Linear(self.hidden_size, N_ACTIONS)
@@ -87,6 +87,7 @@ class SAPNetActorCritic(nn.Module):
         state = state.unsqueeze(0)    # Add batch dimension
         state = self.layer1(state)
         state = self.layer2(state)
+        print(state.shape)
         state = self.rnn_preproc(state)
         state, self.hidden = self.gru(state, self.hidden)
         state = state.squeeze(0)      # Remove batch dimension

@@ -14,7 +14,7 @@ torch.backends.cudnn.benchmark = True
 RUNS = 1000
 GAMMA = 0.90
 ACTION_LIMIT = 20
-LEARNING_RATE = 3e-4
+LEARNING_RATE = 5e-5
 GRAD_CLIP_VAL = 5
 E = 0.2
 
@@ -176,6 +176,8 @@ class ActorCriticTrainer:
                 print("Beginning turn", turn)
                 print("-------------------")
 
+                self.server.click_top()
+
                 self.model.hidden = self.model.init_hidden(1)
 
                 # SHOP PHASE
@@ -212,9 +214,11 @@ class ActorCriticTrainer:
                 print("----------------------")
 
                 while(self.server.battle_ready(self.server.get_full_state()) is False):
+                    self.server.click_top()
                     print("Waiting for battle to start")
 
                 battle_start = time.time()
+                print("Battle timer started")
 
                 # BATTLE PHASE
                 battle_status = Battle.ONGOING
@@ -223,6 +227,7 @@ class ActorCriticTrainer:
                     battle_status = self.server.battle_status(state)
 
                 battle_duration = time.time() - battle_start
+                print("Battle timer stopped")
 
                 # UPDATE PHASE
                 reward = self.server.reward_duration(battle_status, battle_duration)
@@ -230,7 +235,6 @@ class ActorCriticTrainer:
                 run_reward += reward
                 self.reward_history = [0] * len(self.action_history)
                 self.reward_history[-1] = reward
-
 
                 # Update the model
                 self.update_model_pg()
