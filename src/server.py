@@ -8,7 +8,8 @@ from action import *
 import torch
 from torchvision.transforms.functional import pil_to_tensor
 
-SAP_PRIVATE_GAME_NAME = "dogpark"
+SAP_PRIVATE_GAME_NAME = "dogparkies"
+CF = 0.9
 
 class Battle(Enum):
     WIN = 0
@@ -36,12 +37,13 @@ class SAPServer:
         "gameover": "resources/gameover.png",
         "arena_won": "resources/arena_won.png",
         "pause_button": "resources/pause_button.png",
+        "ff_button": "resources/ff_button.png",
         "roll": "resources/roll.png"
     }
 
     def __init__(self, role):
         self.role = role
-        #icon_loc = pg.locateOnScreen(Image.open(self.res["icon"]), confidence=0.9)        
+        #icon_loc = pg.locateOnScreen(Image.open(self.res["icon"]), confidence=CF)        
         #if (icon_loc is None):
         #    print("StateServer failed to find SAP window.")
         #    exit(1)
@@ -53,11 +55,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        #self.join_private_match()
-        #self.start_private_match()
-        pg.moveTo(ARENA_LOC, duration=0.2)
-        pg.doubleClick()
-        time.sleep(1)
+        self.join_private_match()
+        self.start_private_match()
+        #pg.moveTo(ARENA_LOC, duration=0.2)
+        #pg.doubleClick()
+        #time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A68)
@@ -77,33 +79,33 @@ class SAPServer:
         pg.click()
 
     def battle_ready(self, state):
-        pause_search = pg.locate(Image.open(self.res["pause_button"]), state, confidence=0.9)
-        if (pause_search is not None):
+        pause_search = pg.locate(Image.open(self.res["ff_button"]), state, confidence=CF)
+        if (pause_search):
             return True
         return False
 
     def battle_status(self, state):
-        victory_search = pg.locate(Image.open(self.res["victory"]), state, confidence=0.9)
+        victory_search = pg.locate(Image.open(self.res["victory"]), state, confidence=CF)
         if (victory_search):
             print("Victory")
             return Battle.WIN
 
-        defeat_search = pg.locate(Image.open(self.res["defeat"]), state, confidence=0.9)
+        defeat_search = pg.locate(Image.open(self.res["defeat"]), state, confidence=CF)
         if (defeat_search):
             print("Defeat")
             return Battle.LOSS
 
-        draw_search = pg.locate(Image.open(self.res["draw"]), state, confidence=0.9)
+        draw_search = pg.locate(Image.open(self.res["draw"]), state, confidence=CF)
         if (draw_search):
             print("Draw")
             return Battle.DRAW
 
-        arena_won_search = pg.locate(Image.open(self.res["arena_won"]), state, confidence=0.9)
+        arena_won_search = pg.locate(Image.open(self.res["arena_won"]), state, confidence=CF)
         if (arena_won_search):
             print("Run Won")
             return Battle.RUN_WIN
 
-        arena_lost_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.9)
+        arena_lost_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=CF)
         if (arena_lost_search):
             print("Run Lost")
             return Battle.RUN_LOSS
@@ -111,40 +113,47 @@ class SAPServer:
         return Battle.ONGOING
 
     def run_complete(self, state):
-        arena_search = pg.locate(Image.open(self.res["arena"]), state, confidence=0.9)
+        arena_search = pg.locate(Image.open(self.res["arena"]), state, confidence=CF)
         if (arena_search):
             return True
         return False
 
     def buy_complete(self, state):
-        gold_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=0.9)
+        gold_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=CF)
         if (gold_search):
             self.start_battle()
             return True
         return False
 
     def shop_ready(self, state):
-        sign_search = pg.locate(Image.open(self.res["roll"]), state, confidence=0.9)
+        sign_search = pg.locate(Image.open(self.res["roll"]), state, confidence=CF)
         if (sign_search):
             return True
         return False
 
     def low_gold(self, state):
-        zero_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=0.9)
+        ten_search = pg.locate(Image.open(self.res["ten_gold"]), state, confidence=CF)
+        if (ten_search):
+            return False
+
+        zero_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=CF)
         if (zero_search):
+            print("Zero gold")
             return True
 
-        one_search = pg.locate(Image.open(self.res["one_gold"]), state, confidence=1.0)
+        one_search = pg.locate(Image.open(self.res["one_gold"]), state, confidence=0.9)
         if (one_search):
+            print("One gold")
             return True
 
-        two_search = pg.locate(Image.open(self.res["two_gold"]), state, confidence=0.9)
+        two_search = pg.locate(Image.open(self.res["two_gold"]), state, confidence=CF)
         if (two_search):
+            print("Two gold")
             return True
         return False
 
     def zero_gold(self, state):
-        zero_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=0.9)
+        zero_search = pg.locate(Image.open(self.res["zero_gold"]), state, confidence=CF)
         if (zero_search):
             return True
         return False
@@ -153,7 +162,7 @@ class SAPServer:
         mask = SAP_ACTION_NO_MASK.clone()
 
         if (self.low_gold(state)):
-            print("Gold is low. Masking buy actions.")
+            print("Masking buy actions.")
             return SAP_ACTION_ALL_BUY_MASK.clone()
         else:
             mask[:,-1] = 0
@@ -186,7 +195,7 @@ class SAPServer:
             base = 1
         elif (battle_status is Battle.LOSS or battle_status is Battle.RUN_LOSS):
             base = -1
-        return base * (12.0 - duration)
+        return base * (20.0 - duration)
 
     def apply(self, action):
         """ Apply the given action in SAP """
@@ -215,9 +224,10 @@ class SAPServer:
     def start_private_match(self):
         if (self.role is Role.HOST):
             while(self.shop_ready(self.get_full_state()) is False):
+                print("Waiting for players")
                 time.sleep(2)
                 self.press_button(START_GAME_LOC)
         else:
-            while(pg.locate(Image.open(self.res["ten_gold"]), self.get_full_state(), confidence=0.9) is None):
+            while(self.shop_ready(self.get_full_state()) is False):
                 print("Waiting for game to start")
                 time.sleep(5)
