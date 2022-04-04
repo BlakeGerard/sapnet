@@ -3,11 +3,11 @@ from server import *
 from sapnet import SAPNetActorCritic
 from os.path import exists
 
-load_path = "models/goddard.old.pt"
+load_path = "models/goddard.h256.pt"
 role = Role.HOST
 
 def main():
-	model = SAPNetActorCritic("goddard")
+	model = SAPNetActorCritic("goddard.h256")
 	if (exists(load_path)):
 		print("Loading goddard") 
 		model.load(load_path)

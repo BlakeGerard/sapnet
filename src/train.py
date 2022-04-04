@@ -14,8 +14,8 @@ torch.backends.cudnn.benchmark = True
 RUNS = 1000
 GAMMA = 0.90
 ACTION_LIMIT = 20
-LEARNING_RATE = 5e-5
-GRAD_CLIP_VAL = 5
+LEARNING_RATE = 1e-3
+GRAD_CLIP_VAL = 10
 E = 0.2
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])

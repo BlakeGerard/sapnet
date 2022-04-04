@@ -9,7 +9,7 @@ import torch
 from torchvision.transforms.functional import pil_to_tensor
 
 SAP_PRIVATE_GAME_NAME = "dogparkies"
-CF = 0.9
+CF = 0.8
 
 class Battle(Enum):
     WIN = 0
@@ -55,11 +55,11 @@ class SAPServer:
         return pg.screenshot(region=self.window_loc)
 
     def start_run(self):
-        self.join_private_match()
-        self.start_private_match()
-        #pg.moveTo(ARENA_LOC, duration=0.2)
-        #pg.doubleClick()
-        #time.sleep(1)
+        #self.join_private_match()
+        #self.start_private_match()
+        pg.moveTo(ARENA_LOC, duration=0.2)
+        pg.doubleClick()
+        time.sleep(1)
 
     def start_battle(self, state):
         self.apply(Action.A68)
@@ -105,7 +105,7 @@ class SAPServer:
             print("Run Won")
             return Battle.RUN_WIN
 
-        arena_lost_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=CF)
+        arena_lost_search = pg.locate(Image.open(self.res["gameover"]), state, confidence=0.6)
         if (arena_lost_search):
             print("Run Lost")
             return Battle.RUN_LOSS
