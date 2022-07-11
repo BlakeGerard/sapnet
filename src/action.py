@@ -1,44 +1,58 @@
 from enum import Enum
 from slot import *
 import torch
-import pyautogui as pg
 import time
+from pynput.mouse import Button, Controller
 
-def action_move(args):
+def move_to(controller, dst):
+	""" Move mouse to dst """
+	src = controller.position()
+	diff = dst - src
+	controller.move(diff)
+
+def drag_to(controller, src, dst):
+    """ Press at src, drag to dst, release at dst """
+    move_to(controller, src)
+    controller.press(Button.left)
+    move_to(controller, dst)
+    controller.release(Button.left)
+
+def action_move(controller, args):
     """ Move a team pet from slot args[0] to slot args[1] """
-    pg.moveTo(SLOT_LOC[args[0]], duration=0.2)
-    pg.click()
-    pg.dragTo(SLOT_LOC[args[1]], duration=0.2, button="left")
+    drag_to(controller, SLOT_LOC[args[0]], SLOT_LOC[args[1]])
 
-def action_buy(args):
+def action_buy(controller, args):
     """ Buy the shop pet at args[0] and place in team position args[1] """
-    pg.moveTo(SLOT_LOC[args[0]], duration=0.2)
-    pg.click()
-    pg.dragTo(SLOT_LOC[args[1]], duration=0.2, button="left")
+    drag_to(controller, SLOT_LOC[args[0]], SLOT_LOC[args[1]])
 
-def action_sell(args):
+def action_sell(controller, args):
     """ Sell the team pet at args """
-    pg.moveTo(SLOT_LOC[args], duration=0.2)
-    pg.click()
-    pg.moveTo(SELL_LOC, duration=0.2)
-    pg.click()
+    move_to(controller, SLOT_LOC[args])
+    controller.click()
+    move_to(controller, SELL_LOC)
+    controller.click()
 
-def action_freeze(args):
+def action_freeze(controller, args):
     """ Freeze the shop pet at args """
-    pg.moveTo(SLOT_LOC[args], duration=0.2)
-    pg.click()
-    pg.moveTo(FREEZE_LOC, duration=0.2)
-    pg.click()
+    move_to(controller, SLOT_LOC[args])
+    controller.click()
+    move_to(controller, FREEZE_LOC)
+    controller.click()
 
-def action_roll(args):
+def action_roll(controller, args):
     """ Roll """
-    pg.moveTo(ROLL_LOC, duration=0.2)
-    pg.doubleClick()
+    move_to(controller, ROLL_LOC)
+    controller.click()
 
-def action_end(args):
+def action_end(controller, args):
     """ End turn """
-    pg.moveTo(END_LOC, duration=0.2)
-    pg.click()
+    move_to(controller, END_LOC)
+    controller.click()
+
+def action_hover(controller, args):
+    """ Hover at top of screen """
+    move_to(controller, HOVER_LOC)
+    controller.click()
 
 class Action(Enum):
     A0 = 0
@@ -114,16 +128,16 @@ class Action(Enum):
 SAP_ACTION_FUNC = {
 
     # Move friends in the team
-    Action.A0  : (action_move, (Slot.T0, Slot.T1)),
-    Action.A1  : (action_move, (Slot.T0, Slot.T2)),
-    Action.A2  : (action_move, (Slot.T0, Slot.T3)),
-    Action.A3  : (action_move, (Slot.T0, Slot.T4)),
-    Action.A4  : (action_move, (Slot.T1, Slot.T0)),
-    Action.A5  : (action_move, (Slot.T1, Slot.T2)),
-    Action.A6  : (action_move, (Slot.T1, Slot.T3)),
-    Action.A7  : (action_move, (Slot.T1, Slot.T4)),
-    Action.A8  : (action_move, (Slot.T2, Slot.T0)),
-    Action.A9  : (action_move, (Slot.T2, Slot.T1)),
+    Action.A0   : (action_move, (Slot.T0, Slot.T1)),
+    Action.A1   : (action_move, (Slot.T0, Slot.T2)),
+    Action.A2   : (action_move, (Slot.T0, Slot.T3)),
+    Action.A3   : (action_move, (Slot.T0, Slot.T4)),
+    Action.A4   : (action_move, (Slot.T1, Slot.T0)),
+    Action.A5   : (action_move, (Slot.T1, Slot.T2)),
+    Action.A6   : (action_move, (Slot.T1, Slot.T3)),
+    Action.A7   : (action_move, (Slot.T1, Slot.T4)),
+    Action.A8   : (action_move, (Slot.T2, Slot.T0)),
+    Action.A9   : (action_move, (Slot.T2, Slot.T1)),
     Action.A10  : (action_move, (Slot.T2, Slot.T3)),
     Action.A11  : (action_move, (Slot.T2, Slot.T4)),
     Action.A12  : (action_move, (Slot.T3, Slot.T0)),
@@ -196,7 +210,6 @@ SAP_ACTION_FUNC = {
 SAP_ACTION_SPACE = list(SAP_ACTION_FUNC.keys())
 
 SAP_ACTION_NO_MASK         = [1] * len(SAP_ACTION_SPACE)
-#SAP_ACTION_NO_MASK[-1] = 0
 
 # Mask all buy actions when gold is low
 SAP_ACTION_ALL_BUY_MASK    = [0 if i >= 20 and i <= 54 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
@@ -211,7 +224,7 @@ SAP_ACTION_TURN_THREE_MASK = [0 if i >= 36 and i <= 44 else val for i,val in enu
 SAP_ACTION_TURN_FIVE_MASK  = [0 if i >= 40 and i <= 44 else val for i,val in enumerate(SAP_ACTION_NO_MASK)]
 
 SAP_ACTION_NO_MASK         = torch.tensor(SAP_ACTION_NO_MASK).unsqueeze(0)
-SAP_ACTION_ALL_BUY_MASK   = torch.tensor(SAP_ACTION_ALL_BUY_MASK).unsqueeze(0)
+SAP_ACTION_ALL_BUY_MASK    = torch.tensor(SAP_ACTION_ALL_BUY_MASK).unsqueeze(0)
 SAP_ACTION_TURN_ONE_MASK   = torch.tensor(SAP_ACTION_TURN_ONE_MASK).unsqueeze(0)
 SAP_ACTION_TURN_THREE_MASK = torch.tensor(SAP_ACTION_TURN_THREE_MASK).unsqueeze(0)
 SAP_ACTION_TURN_FIVE_MASK  = torch.tensor(SAP_ACTION_TURN_FIVE_MASK).unsqueeze(0)

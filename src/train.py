@@ -2,27 +2,21 @@ from sapnet import *
 from server import *
 from action import SAP_ACTION_SPACE
 from collections import namedtuple
-import time
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 
-torch.backends.cudnn.benchmark = True
-
+# Training parameters
 RUNS = 1000
 GAMMA = 0.90
 ACTION_LIMIT = 20
-LEARNING_RATE = 1e-3
+LEARNING_RATE = 5e-4
 GRAD_CLIP_VAL = 10
 E = 0.2
 
 SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
-
-def animate_loss(iteration, policy_loss, value_loss):
-    total_loss = policy_loss + value_loss
-    x.append(iteration)
 
 class ActorCriticTrainer:
     def __init__(self, model, role):
@@ -32,6 +26,7 @@ class ActorCriticTrainer:
         self.action_history = deque([], maxlen=ACTION_LIMIT)
         self.reward_history = deque([], maxlen=ACTION_LIMIT)
 
+    # Invoke the model to select an action
     def select_action(self, image, mask):
         action_prob, state_value = self.model(image, mask)
         dist = Categorical(action_prob)
@@ -40,14 +35,28 @@ class ActorCriticTrainer:
         self.action_history.append(SavedAction(dist.log_prob(index), state_value))
         return SAP_ACTION_SPACE[index]
 
-    def animate_loss(self, turn):
-        x = np.arange(0, turn)
-        self.loss_ax.clear()
-        self.loss_ax.plot(x, self.policy_loss_history)
-        self.loss_ax.plot(x, self.value_loss_history)
-        self.loss_ax.plot(x, np.asarray(self.policy_loss_history) + np.asarray(self.value_loss_history))
+    # Default integer reward function
+    def reward_default(self, battle_status):
+        if (battle_status is Battle.WIN):
+            return 1
+        if (battle_status is Battle.DRAW):
+            return 1
+        if (battle_status is Battle.LOSS):
+            return -1
+        if (battle_status is Battle.GAMEOVER):
+            return 0
 
-    def update_model_pg(self):
+    # Reward based on the duration of the battle
+    def reward_duration(self, battle_status, duration):
+        base = 0
+        if (battle_status is Battle.WIN or battle_status is Battle.RUN_WIN or battle_status >
+            base = 1
+        elif (battle_status is Battle.LOSS or battle_status is Battle.RUN_LOSS):
+            base = -1
+        return base * (20.0 - duration)
+
+    # Update the model
+    def update_model(self):
         R = 0
         policy_losses = []
         value_losses = []
@@ -89,62 +98,6 @@ class ActorCriticTrainer:
         self.action_history.clear()
         self.reward_history.clear()
 
-    def update_model_lclip(self):
-        R = 0
-        returns = []
-
-        it = min(len(self.old_action_history), len(self.action_history))
-        if (it == 0):
-            self.old_action_history = self.action_history
-            print("Updating with pg method")
-            self.update_model_pg()        
-            return
-
-        print("Updating with lclip method")
-        for r in self.reward_history[::-1]:
-            R = r + GAMMA * R
-            returns.insert(0, R)
-        returns = torch.tensor(returns)
-        returns = (returns - returns.mean()) / (returns.std() + 1e-6)
-
-        advantage = []
-        for i in range(it):
-            advantage.append(R - self.action_history[i][1].item())
-
-        policy_ratio = []
-        for i in range(it):
-            policy_ratio.append(self.action_history[i][0] / self.old_action_history[i][0])
-        
-        policy_losses = []
-        value_losses = []
-        for i in range(it):
-            policy_losses.append(min( (policy_ratio[i] * advantage[i]), 
-                                      (torch.clip(policy_ratio[i], 1-E, 1+E) * advantage[i])
-                                    ))
-            value_losses.append(F.huber_loss(self.action_history[i][1], torch.tensor([R]).unsqueeze(0)))
-
-        print(policy_losses)
-        print(value_losses)
-
-        policy_loss = torch.stack(policy_losses).sum()
-        value_loss = torch.stack(value_losses).sum()
-        loss = policy_loss - value_loss
-
-        loss_file = open("loss.txt", "a") 
-        loss_file.write("Policy loss: {}\n".format(policy_loss.item()))
-        loss_file.write("Value loss: {}\n".format(value_loss.item()))
-        loss_file.write("Total loss: {}\n".format(loss.item()))
-        loss_file.write("---------------\n")
-        loss_file.close()
-
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-        self.old_action_history = self.action_history
-        self.action_history.clear()
-        self.reward_history.clear()
-
     def train(self):
         cumulative_reward = 0
 
@@ -152,8 +105,7 @@ class ActorCriticTrainer:
         for _ in range(RUNS):
 
             # Start an Arena run
-            self.server.start_run()
-            time.sleep(1)
+            self.server.start_arena_run()
             run_complete = False
             run_reward = 0
             turn = 1
@@ -165,74 +117,74 @@ class ActorCriticTrainer:
                 mask = None
                 action_counter = 0
                 shop_time_ended = False
-
-                while(self.server.shop_ready(self.server.get_full_state()) is False):
-                     print("Waiting for shop to be ready")
-                     self.server.click_center()
-                     time.sleep(1)
-                     state = self.server.get_full_state()
+                self.model.hidden = self.model.init_hidden(1)
 
                 print("-------------------")
                 print("Beginning turn", turn)
                 print("-------------------")
 
-                self.server.click_top()
-
-                self.model.hidden = self.model.init_hidden(1)
-
                 # SHOP PHASE
                 while(1):
 
+                    shop_state = self.server.get_full_state()
+
+                    # Check if we ran out of time
+                    if (self.server.shop_ready(shop_state) is False):
+                        print("Ran out of time")
+                        break
+
                     # Select an action mask based on turn and gold amount
-                    mask = self.server.get_appropriate_mask(self.server.get_full_state(), turn, action_counter)
+                    mask = self.server.get_appropriate_mask(shop_state, turn, action_counter)
 
                     # Feed the shop state to the network
-                    state = self.server.get_full_state()
-                    action = self.select_action(state, mask)
+                    action = self.select_action(shop_state, mask)
 
+                    # Check if we hit any shop terminal states
                     if (action == Action.A68):
-                        print("Agent chose to end turn")        
+                        print("Agent chose to end turn")
                         self.server.start_battle(state)
                         break
                     if (action_counter == ACTION_LIMIT):
                         print("Reached action limit")
                         self.server.start_battle(state)
                         break
-                    if (self.server.shop_ready(self.server.get_full_state()) is False):
-                        print("Ran out of time")
-                        break
 
-                    # Apply the action (also waits 1 second)
+                    # Apply the action
                     print("Applying: ", action)
                     self.server.apply(action)
 
                     # Increment action_counter
                     action_counter += 1
 
+
+                # Wait for the battle to start
+                while(self.server.battle_ready(self.server.get_full_state()) is False):
+                    print("Waiting for battle to start")
+
                 print("----------------------")
                 print("Beginning battle phase")
                 print("----------------------")
 
-                while(self.server.battle_ready(self.server.get_full_state()) is False):
-                    self.server.click_top()
-                    print("Waiting for battle to start")
-
+                 # Start battle timer
                 battle_start = time.time()
                 print("Battle timer started")
 
-                # BATTLE PHASE
+                # Wait for the battle to complete
                 battle_status = Battle.ONGOING
                 while(battle_status is Battle.ONGOING):
                     state = self.server.get_full_state()
                     battle_status = self.server.battle_status(state)
 
+                # End battle timer
                 battle_duration = time.time() - battle_start
                 print("Battle timer stopped")
 
                 # UPDATE PHASE
-                reward = self.server.reward_duration(battle_status, battle_duration)
+                reward = self.reward_default(battle_status)
                 print("Reward: ", reward)
                 run_reward += reward
+
+                # 0 reward for all actions except the last
                 self.reward_history = [0] * len(self.action_history)
                 self.reward_history[-1] = reward
 
@@ -241,6 +193,8 @@ class ActorCriticTrainer:
                 self.model.save()
 
                 turn += 1
+
+                # If the run is over, signal run complete
                 if (battle_status is Battle.RUN_WIN or battle_status is Battle.RUN_LOSS):
                     while(self.server.run_complete(self.server.get_full_state()) is False):
                         self.server.click_top()
