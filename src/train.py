@@ -16,7 +16,8 @@ LEARNING_RATE = 5e-4
 GRAD_CLIP_VAL = 10
 E = 0.2
 
-SavedAction = namedtuple('SavedAction', ['log_prob', 'value'])
+SavedAction = namedtuple("SavedAction", ["log_prob", "value"])
+
 
 class ActorCriticTrainer:
     def __init__(self, model, role):
@@ -37,23 +38,14 @@ class ActorCriticTrainer:
 
     # Default integer reward function
     def reward_default(self, battle_status):
-        if (battle_status is Battle.WIN):
+        if battle_status is Battle.WIN:
             return 1
-        if (battle_status is Battle.DRAW):
+        if battle_status is Battle.DRAW:
             return 1
-        if (battle_status is Battle.LOSS):
+        if battle_status is Battle.LOSS:
             return -1
-        if (battle_status is Battle.GAMEOVER):
+        if battle_status is Battle.GAMEOVER:
             return 0
-
-    # Reward based on the duration of the battle
-    def reward_duration(self, battle_status, duration):
-        base = 0
-        if (battle_status is Battle.WIN or battle_status is Battle.RUN_WIN or battle_status >
-            base = 1
-        elif (battle_status is Battle.LOSS or battle_status is Battle.RUN_LOSS):
-            base = -1
-        return base * (20.0 - duration)
 
     # Update the model
     def update_model(self):
@@ -83,7 +75,7 @@ class ActorCriticTrainer:
         value_loss = torch.stack(value_losses).sum()
         loss = policy_loss + value_loss
 
-        loss_file = open("loss.txt", "a") 
+        loss_file = open("loss.txt", "a")
         loss_file.write("Policy loss: {}\n".format(policy_loss.item()))
         loss_file.write("Value loss: {}\n".format(value_loss.item()))
         loss_file.write("Total loss: {}\n".format(loss.item()))
@@ -105,13 +97,13 @@ class ActorCriticTrainer:
         for _ in range(RUNS):
 
             # Start an Arena run
-            self.server.start_arena_run()
+            self.server.begin_arena_run()
             run_complete = False
             run_reward = 0
             turn = 1
 
             # We'll refer to one Arena run as an Episode in classic RL terms.
-            while(run_complete is False):
+            while run_complete is False:
 
                 action = None
                 mask = None
@@ -124,27 +116,29 @@ class ActorCriticTrainer:
                 print("-------------------")
 
                 # SHOP PHASE
-                while(1):
+                while 1:
 
                     shop_state = self.server.get_full_state()
 
                     # Check if we ran out of time
-                    if (self.server.shop_ready(shop_state) is False):
+                    if self.server.shop_ready(shop_state) is False:
                         print("Ran out of time")
                         break
 
                     # Select an action mask based on turn and gold amount
-                    mask = self.server.get_appropriate_mask(shop_state, turn, action_counter)
+                    mask = self.server.get_appropriate_mask(
+                        shop_state, turn, action_counter
+                    )
 
                     # Feed the shop state to the network
                     action = self.select_action(shop_state, mask)
 
                     # Check if we hit any shop terminal states
-                    if (action == Action.A68):
+                    if action == Action.A68:
                         print("Agent chose to end turn")
                         self.server.start_battle(state)
                         break
-                    if (action_counter == ACTION_LIMIT):
+                    if action_counter == ACTION_LIMIT:
                         print("Reached action limit")
                         self.server.start_battle(state)
                         break
@@ -156,22 +150,21 @@ class ActorCriticTrainer:
                     # Increment action_counter
                     action_counter += 1
 
-
                 # Wait for the battle to start
-                while(self.server.battle_ready(self.server.get_full_state()) is False):
+                while self.server.battle_ready(self.server.get_full_state()) is False:
                     print("Waiting for battle to start")
 
                 print("----------------------")
                 print("Beginning battle phase")
                 print("----------------------")
 
-                 # Start battle timer
+                # Start battle timer
                 battle_start = time.time()
                 print("Battle timer started")
 
                 # Wait for the battle to complete
                 battle_status = Battle.ONGOING
-                while(battle_status is Battle.ONGOING):
+                while battle_status is Battle.ONGOING:
                     state = self.server.get_full_state()
                     battle_status = self.server.battle_status(state)
 
@@ -189,17 +182,19 @@ class ActorCriticTrainer:
                 self.reward_history[-1] = reward
 
                 # Update the model
-                self.update_model_pg()
+                self.update_model()
                 self.model.save()
 
                 turn += 1
 
                 # If the run is over, signal run complete
-                if (battle_status is Battle.RUN_WIN or battle_status is Battle.RUN_LOSS):
-                    while(self.server.run_complete(self.server.get_full_state()) is False):
+                if battle_status is Battle.RUN_WIN or battle_status is Battle.RUN_LOSS:
+                    while (
+                        self.server.run_complete(self.server.get_full_state()) is False
+                    ):
                         self.server.click_top()
                         time.sleep(1)
                     run_complete = True
 
             cumulative_reward = 0.05 * run_reward + (1 - 0.05) * cumulative_reward
-            print("Cumulative reward: ", cumulative_reward) 
+            print("Cumulative reward: ", cumulative_reward)

@@ -1,15 +1,16 @@
 # SAPNet requirements
 from slot import *
 from action import *
+from mouse import *
 
 # Image processing
-import PIL.Image.open as ImageOpen
-import PIL.ImageGrab.grab as ImageGrab
+from PIL import Image
+from PIL import ImageGrab
 import cv2 as cv
 
 # Input and timing
-from pynput.mouse import Button, Controller
 import time
+import os
 
 # Pytorch
 import torch
@@ -18,7 +19,7 @@ import numpy as np
 SAP_PRIVATE_GAME_NAME = "dogparkies"
 
 CV_METHOD = "cv.TM_CCOEFF_NORMED"
-CV_CONF   = 0.95
+CV_CONF = 0.95
 
 res = {
     "arena": "resources/arena.png",
@@ -34,8 +35,9 @@ res = {
     "arena_won": "resources/arena_won.png",
     "pause_button": "resources/pause_button.png",
     "ff_button": "resources/ff_button.png",
-    "roll": "resources/roll.png"
+    "roll": "resources/roll.png",
 }
+
 
 class Battle(Enum):
     WIN = 0
@@ -45,16 +47,17 @@ class Battle(Enum):
     RUN_LOSS = 4
     ONGOING = 5
 
+
 class Role(Enum):
     PLAYER = 0
     HOST = 1
 
+
 class SAPServer:
     def __init__(self, role):
         self.role = role
-        self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T,
-                           SAP_WINDOW_W, SAP_WINDOW_H)
-        self.mouse = Controller()
+        self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, SAP_WINDOW_W, SAP_WINDOW_H)
+        self.mouse = Mouse("/dev/input/event12", ARENA_LOC)
 
     # Apply an action
     def apply(self, action):
@@ -64,7 +67,7 @@ class SAPServer:
 
     # Capture the entire game state
     def get_full_state(self):
-        return ImageGrab(self.window_loc)
+        return ImageGrab.grab(self.window_loc)
 
     # Check if game element is present in the game state
     def locate(self, needle):
@@ -79,35 +82,43 @@ class SAPServer:
 
     # Check if the battle has started by looking for the fast forward button
     def battle_ready(self, state):
-        pause_search = self.locate(ImageOpen(self.res["ff_button"]), state, confidence=CF)
-        if (pause_search):
+        pause_search = self.locate(
+            Image.open(self.res["ff_button"]), state, confidence=CF
+        )
+        if pause_search:
             return True
         return False
 
     # Check battle status by looking for battle result screen splash
     def battle_status(self, state):
-        victory_search = self.locate(ImageOpen(self.res["victory"]), state, confidence=CF)
-        if (victory_search):
+        victory_search = self.locate(
+            Image.open(self.res["victory"]), state, confidence=CF
+        )
+        if victory_search:
             print("Victory")
             return Battle.WIN
 
-        defeat_search = self.locate(ImageOpen(self.res["defeat"]), state, confidence=CF)
-        if (defeat_search):
+        defeat_search = self.locate(Image.open(self.res["defeat"]), state, confidence=CF)
+        if defeat_search:
             print("Defeat")
             return Battle.LOSS
 
-        draw_search = self.locate(ImageOpen(self.res["draw"]), state, confidence=CF)
-        if (draw_search):
+        draw_search = self.locate(Image.open(self.res["draw"]), state, confidence=CF)
+        if draw_search:
             print("Draw")
             return Battle.DRAW
 
-        arena_won_search = self.locate(ImageOpen(self.res["arena_won"]), state, confidence=CF)
-        if (arena_won_search):
+        arena_won_search = self.locate(
+            Image.open(self.res["arena_won"]), state, confidence=CF
+        )
+        if arena_won_search:
             print("Run Won")
             return Battle.RUN_WIN
 
-        arena_lost_search = self.locate(ImageOpen(self.res["gameover"]), state, confidence=0.6)
-        if (arena_lost_search):
+        arena_lost_search = self.locate(
+            Image.open(self.res["gameover"]), state, confidence=0.6
+        )
+        if arena_lost_search:
             print("Run Lost")
             return Battle.RUN_LOSS
 
@@ -115,44 +126,48 @@ class SAPServer:
 
     # Check if the entire run is complete by looking for the arena button
     def run_complete(self, state):
-        arena_search = self.locate(ImageOpen(self.res["arena"]), state, confidence=CF)
-        if (arena_search):
+        arena_search = self.locate(Image.open(self.res["arena"]), state, confidence=CF)
+        if arena_search:
             return True
         return False
 
     # Check that the shop is ready by looking for the roll button
     def shop_ready(self, state):
-        sign_search = self.locate(ImageOpen(self.res["roll"]), state, confidence=CF)
-        if (sign_search):
+        sign_search = self.locate(Image.open(self.res["roll"]), state, confidence=CF)
+        if sign_search:
             return True
         return False
 
     # Check if we are below three gold
     def low_gold(self, state):
-        ten_search = self.locate(ImageOpen(self.res["ten_gold"]), state, confidence=CF)
-        if (ten_search):
+        ten_search = self.locate(Image.open(self.res["ten_gold"]), state, confidence=CF)
+        if ten_search:
             return False
 
-        zero_search = self.locate(ImageOpen(self.res["zero_gold"]), state, confidence=CF)
-        if (zero_search):
+        zero_search = self.locate(
+            Image.open(self.res["zero_gold"]), state, confidence=CF
+        )
+        if zero_search:
             print("Zero gold")
             return True
 
-        one_search = self.locate(ImageOpen(self.res["one_gold"]), state, confidence=0.9)
-        if (one_search):
+        one_search = self.locate(Image.open(self.res["one_gold"]), state, confidence=0.9)
+        if one_search:
             print("One gold")
             return True
 
-        two_search = self.locate(ImageOpen(self.res["two_gold"]), state, confidence=CF)
-        if (two_search):
+        two_search = self.locate(Image.open(self.res["two_gold"]), state, confidence=CF)
+        if two_search:
             print("Two gold")
             return True
         return False
 
     # Check if we are totally out of gold
     def zero_gold(self, state):
-        zero_search = self.locate(ImageOpen(self.res["zero_gold"]), state, confidence=CF)
-        if (zero_search):
+        zero_search = self.locate(
+            Image.open(self.res["zero_gold"]), state, confidence=CF
+        )
+        if zero_search:
             return True
         return False
 
@@ -160,49 +175,52 @@ class SAPServer:
     def get_appropriate_mask(self, state, turn, step):
         mask = SAP_ACTION_NO_MASK.clone()
 
-        if (self.low_gold(state)):
+        if self.low_gold(state):
             print("Masking buy actions.")
             return SAP_ACTION_ALL_BUY_MASK.clone()
         else:
-            mask[:,-1] = 0
+            mask[:, -1] = 0
 
-        if (turn < 3):
+        if turn < 3:
             mask = SAP_ACTION_TURN_ONE_MASK * mask
-        elif (turn < 5):
+        elif turn < 5:
             mask = SAP_ACTION_TURN_THREE_MASK * mask
-        elif (turn < 9):
+        elif turn < 9:
             mask = SAP_ACTION_TURN_FIVE_MASK * mask
         return mask
 
     # Default integer reward function
     def reward_default(self, battle_status):
-        if (battle_status is Battle.WIN):
+        if battle_status is Battle.WIN:
             return 1
-        if (battle_status is Battle.DRAW):
+        if battle_status is Battle.DRAW:
             return 1
-        if (battle_status is Battle.LOSS):
+        if battle_status is Battle.LOSS:
             return -1
-        if (battle_status is Battle.GAMEOVER):
+        if battle_status is Battle.GAMEOVER:
             return 0
 
     def reward_duration(self, battle_status, duration):
         base = 0
-        if (battle_status is Battle.WIN or battle_status is Battle.RUN_WIN or battle_status is Battle.DRAW):
+        if (
+            battle_status is Battle.WIN
+            or battle_status is Battle.RUN_WIN
+            or battle_status is Battle.DRAW
+        ):
             base = 1
-        elif (battle_status is Battle.LOSS or battle_status is Battle.RUN_LOSS):
+        elif battle_status is Battle.LOSS or battle_status is Battle.RUN_LOSS:
             base = -1
         return base * (20.0 - duration)
 
-
-
     # Game interaction to begin arena or private match
     def begin_arena_run(self):
-        move_to(self.mouse, ARENA_LOC)
+        print("Move the cursor to the arena button to begin")
+        time.sleep(5)
         self.mouse.click()
         time.sleep(1)
 
-	def begin_private_match(self):
-		self.join_private_match()
+    def begin_private_match(self):
+        self.join_private_match()
         self.start_private_match()
 
     def start_battle(self, state):
@@ -211,25 +229,25 @@ class SAPServer:
 
     def join_private_match(self):
         self.press_button(VERSUS_LOC)
-        if (self.role is Role.PLAYER):
+        if self.role is Role.PLAYER:
             time.sleep(5)
 
-        if (self.role is Role.HOST):
-           self.press_button(CREATE_PRIVATE_LOC)
+        if self.role is Role.HOST:
+            self.press_button(CREATE_PRIVATE_LOC)
         else:
-           self.press_button(JOIN_PRIVATE_LOC)
+            self.press_button(JOIN_PRIVATE_LOC)
 
         self.press_button(ENTER_NAME_LOC)
         pg.write(SAP_PRIVATE_GAME_NAME)
         self.press_button(CONFIRM_PRIVATE_LOC)
 
     def start_private_match(self):
-        if (self.role is Role.HOST):
-            while(self.shop_ready(self.get_full_state()) is False):
+        if self.role is Role.HOST:
+            while self.shop_ready(self.get_full_state()) is False:
                 print("Waiting for players")
                 time.sleep(5)
                 self.press_button(START_GAME_LOC)
         else:
-            while(self.shop_ready(self.get_full_state()) is False):
+            while self.shop_ready(self.get_full_state()) is False:
                 print("Waiting for game to start")
                 time.sleep(5)

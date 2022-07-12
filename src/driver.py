@@ -1,3 +1,10 @@
+#! /bin/python
+
+import os
+os.environ["PYNPUT_BACKEND"] = "uinput"
+os.environ["PYNPUT_BACKEND_MOUSE"] = "uinput"
+os.environ["PYNPUT_BACKEND_KEYBOARD"] = "uinput"
+
 from train import *
 from server import *
 from sapnet import SAPNetActorCritic
@@ -7,13 +14,13 @@ load_path = "models/goddard.h256.pt"
 role = Role.HOST
 
 def main():
-	model = SAPNetActorCritic("goddard.h256")
-	if (exists(load_path)):
-		print("Loading goddard") 
-		model.load(load_path)
+    model = SAPNetActorCritic("goddard.h256")
+    if exists(load_path):
+        print("Loading goddard")
+        model.load(load_path)
 
-	trainer = ActorCriticTrainer(model, role)
-	trainer.train()
+    trainer = ActorCriticTrainer(model, role)
+    trainer.train()
 
-if __name__ == '__main__':
-	main()
+if __name__ == "__main__":
+    main()
