@@ -18,7 +18,7 @@ import numpy as np
 
 SAP_PRIVATE_GAME_NAME = "dogparkies"
 
-CV_METHOD = "cv.TM_CCOEFF_NORMED"
+CV_METHOD = cv.TM_CCOEFF_NORMED
 CV_CONF = 0.95
 
 res = {
@@ -57,7 +57,7 @@ class SAPServer:
     def __init__(self, role):
         self.role = role
         self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, SAP_WINDOW_W, SAP_WINDOW_H)
-        self.mouse = Mouse("/dev/input/event12", ARENA_LOC)
+        self.mouse = Mouse("/dev/input/event20", ARENA_LOC)
 
     # Apply an action
     def apply(self, action):
@@ -67,14 +67,18 @@ class SAPServer:
 
     # Capture the entire game state
     def get_full_state(self):
-        return ImageGrab.grab(self.window_loc)
+        pil_image = ImageGrab.grab(self.window_loc)
+        return np.asarray(pil_image)
+
+    def open_image_as_np_array(self, path):
+        pil_image = Image.open(path)
+        return np.asarray(pil_image)
 
     # Check if game element is present in the game state
-    def locate(self, needle):
-        haystack = self.get_full_state()
+    def locate(self, needle, haystack, confidence):
         res = cv.matchTemplate(haystack, needle, CV_METHOD)
         match_indices = np.arange(res.size)[(res > confidence).flatten()]
-        matches = np.unravel_index(match_indices[:limit], result.shape)
+        matches = np.unravel_index(match_indices[:1], res.shape)
         if len(matches[0]) == 0:
             return False
         else:
@@ -83,7 +87,7 @@ class SAPServer:
     # Check if the battle has started by looking for the fast forward button
     def battle_ready(self, state):
         pause_search = self.locate(
-            Image.open(self.res["ff_button"]), state, confidence=CF
+            self.open_image_as_np_array(res["ff_button"]), state, confidence=CV_CONF
         )
         if pause_search:
             return True
@@ -92,31 +96,31 @@ class SAPServer:
     # Check battle status by looking for battle result screen splash
     def battle_status(self, state):
         victory_search = self.locate(
-            Image.open(self.res["victory"]), state, confidence=CF
+            self.open_image_as_np_array(res["victory"]), state, confidence=CV_CONF
         )
         if victory_search:
             print("Victory")
             return Battle.WIN
 
-        defeat_search = self.locate(Image.open(self.res["defeat"]), state, confidence=CF)
+        defeat_search = self.locate(self.open_image_as_np_array(res["defeat"]), state, confidence=CV_CONF)
         if defeat_search:
             print("Defeat")
             return Battle.LOSS
 
-        draw_search = self.locate(Image.open(self.res["draw"]), state, confidence=CF)
+        draw_search = self.locate(self.open_image_as_np_array(res["draw"]), state, confidence=CV_CONF)
         if draw_search:
             print("Draw")
             return Battle.DRAW
 
         arena_won_search = self.locate(
-            Image.open(self.res["arena_won"]), state, confidence=CF
+            self.open_image_as_np_array(res["arena_won"]), state, confidence=CV_CONF
         )
         if arena_won_search:
             print("Run Won")
             return Battle.RUN_WIN
 
         arena_lost_search = self.locate(
-            Image.open(self.res["gameover"]), state, confidence=0.6
+            self.open_image_as_np_array(res["gameover"]), state, confidence=0.6
         )
         if arena_lost_search:
             print("Run Lost")
@@ -126,37 +130,37 @@ class SAPServer:
 
     # Check if the entire run is complete by looking for the arena button
     def run_complete(self, state):
-        arena_search = self.locate(Image.open(self.res["arena"]), state, confidence=CF)
+        arena_search = self.locate(self.open_image_as_np_array(res["arena"]), state, confidence=CV_CONF)
         if arena_search:
             return True
         return False
 
     # Check that the shop is ready by looking for the roll button
     def shop_ready(self, state):
-        sign_search = self.locate(Image.open(self.res["roll"]), state, confidence=CF)
+        sign_search = self.locate(self.open_image_as_np_array(res["roll"]), state, confidence=CV_CONF)
         if sign_search:
             return True
         return False
 
     # Check if we are below three gold
     def low_gold(self, state):
-        ten_search = self.locate(Image.open(self.res["ten_gold"]), state, confidence=CF)
+        ten_search = self.locate(self.open_image_as_np_array(res["ten_gold"]), state, confidence=CV_CONF)
         if ten_search:
             return False
 
         zero_search = self.locate(
-            Image.open(self.res["zero_gold"]), state, confidence=CF
+            self.open_image_as_np_array(res["zero_gold"]), state, confidence=CV_CONF
         )
         if zero_search:
             print("Zero gold")
             return True
 
-        one_search = self.locate(Image.open(self.res["one_gold"]), state, confidence=0.9)
+        one_search = self.locate(self.open_image_as_np_array(res["one_gold"]), state, confidence=0.9)
         if one_search:
             print("One gold")
             return True
 
-        two_search = self.locate(Image.open(self.res["two_gold"]), state, confidence=CF)
+        two_search = self.locate(self.open_image_as_np_array(res["two_gold"]), state, confidence=CV_CONF)
         if two_search:
             print("Two gold")
             return True
@@ -165,7 +169,7 @@ class SAPServer:
     # Check if we are totally out of gold
     def zero_gold(self, state):
         zero_search = self.locate(
-            Image.open(self.res["zero_gold"]), state, confidence=CF
+            self.open_image_as_np_array(res["zero_gold"]), state, confidence=CV_CONF
         )
         if zero_search:
             return True
