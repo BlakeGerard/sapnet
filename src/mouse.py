@@ -3,7 +3,8 @@ import time
 
 class Mouse:
     def __init__(self, event, position):
-        self.ui_ = UInput.from_device(InputDevice(event))
+        self.dev_ = InputDevice(event)
+        self.ui_ = UInput.from_device(self.dev_)
         self.position_ = position
 
     def position(self):

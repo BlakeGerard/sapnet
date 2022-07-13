@@ -2,6 +2,7 @@
 from slot import *
 from action import *
 from mouse import *
+from image import GrimImager
 
 # Image processing
 from PIL import Image
@@ -54,7 +55,8 @@ class SAPServer:
     def __init__(self, role):
         self.role = role
         self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, SAP_WINDOW_W, SAP_WINDOW_H)
-        self.mouse = Mouse("/dev/input/event20", ARENA_LOC)
+        self.mouse = Mouse("/dev/input/event10", ARENA_LOC)
+        self.viewer = GrimImager("DP-2")
 
     # Apply an action
     def apply(self, action):
@@ -64,7 +66,7 @@ class SAPServer:
 
     # Capture the entire game state
     def get_full_state(self):
-        pil_image = ImageGrab.grab(self.window_loc)
+        pil_image = self.viewer.capture_area(self.window_loc)
         return np.asarray(pil_image)
 
     def open_image_as_np_array(self, path):
