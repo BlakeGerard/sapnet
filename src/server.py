@@ -22,20 +22,17 @@ CV_METHOD = cv.TM_CCOEFF_NORMED
 CV_CONF = 0.95
 
 res = {
-    "arena": "resources/arena.png",
-    "icon": "resources/window_icon.png",
-    "victory": "resources/victory.png",
-    "defeat": "resources/defeat.png",
-    "draw": "resources/draw.png",
-    "zero_gold": "resources/zero_gold.png",
-    "one_gold": "resources/one_gold.png",
-    "two_gold": "resources/two_gold.png",
-    "ten_gold": "resources/ten_gold.png",
-    "gameover": "resources/gameover.png",
-    "arena_won": "resources/arena_won.png",
-    "pause_button": "resources/pause_button.png",
-    "ff_button": "resources/ff_button.png",
-    "roll": "resources/roll.png",
+    "logout"    : "resources/480p/logout.png",
+    "victory"   : "resources/480p/victory.png",
+    "defeat"    : "resources/480p/defeat.png",
+    "draw"      : "resources/480p/draw.png",
+    "gameover"  : "resources/480p/gameover.png",
+    "pause"     : "resources/480p/pause.png",
+    "roll"      : "resources/480p/roll.png",
+    "zero_gold" : "resources/480p/zero_gold.png",
+    "one_gold"  : "resources/480p/one_gold.png",
+    "two_gold"  : "resources/480p/two_gold.png",
+    "ten_gold"  : "resources/480p/ten_gold.png",
 }
 
 
@@ -87,7 +84,7 @@ class SAPServer:
     # Check if the battle has started by looking for the fast forward button
     def battle_ready(self, state):
         pause_search = self.locate(
-            self.open_image_as_np_array(res["ff_button"]), state, confidence=CV_CONF
+            self.open_image_as_np_array(res["pause"]), state, confidence=CV_CONF
         )
         if pause_search:
             return True
@@ -112,13 +109,6 @@ class SAPServer:
             print("Draw")
             return Battle.DRAW
 
-        arena_won_search = self.locate(
-            self.open_image_as_np_array(res["arena_won"]), state, confidence=CV_CONF
-        )
-        if arena_won_search:
-            print("Run Won")
-            return Battle.RUN_WIN
-
         arena_lost_search = self.locate(
             self.open_image_as_np_array(res["gameover"]), state, confidence=0.6
         )
@@ -130,7 +120,7 @@ class SAPServer:
 
     # Check if the entire run is complete by looking for the arena button
     def run_complete(self, state):
-        arena_search = self.locate(self.open_image_as_np_array(res["arena"]), state, confidence=CV_CONF)
+        arena_search = self.locate(self.open_image_as_np_array(res["logout"]), state, confidence=CV_CONF)
         if arena_search:
             return True
         return False
