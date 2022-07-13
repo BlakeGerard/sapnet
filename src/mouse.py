@@ -5,7 +5,7 @@ class Mouse:
     def __init__(self, event, position):
         self.dev_ = InputDevice(event)
         self.ui_ = UInput.from_device(self.dev_)
-        self.position_ = position
+        self.position_ = [0,0]
 
     def position(self):
         return self.position_
@@ -37,15 +37,15 @@ class Mouse:
         self.register_release()
         self.syn()
 
-    def move_and_click(dst_diff):
+    def move_and_click(self, dst_diff):
         self.move(dst_diff)
         self.click()
 
-    def drag(self, src_diff, dst_diff):
-        self.register_move(src_diff)
+    def drag(self, diff_to_src, diff_to_dst):
+        self.register_move(diff_to_src)
         self.register_press()
         self.register_hold()
         self.syn()
-        self.register_move(dst_diff)
+        self.register_move(diff_to_dst)
         self.register_release()
         self.syn()

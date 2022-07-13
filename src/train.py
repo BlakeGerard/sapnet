@@ -118,20 +118,20 @@ class ActorCriticTrainer:
                 # SHOP PHASE
                 while 1:
 
-                    shop_state = self.server.get_full_state()
+                    state = self.server.get_full_state()
 
                     # Check if we ran out of time
-                    if self.server.shop_ready(shop_state) is False:
+                    if self.server.shop_ready(state) is False:
                         print("Ran out of time")
                         break
 
                     # Select an action mask based on turn and gold amount
                     mask = self.server.get_appropriate_mask(
-                        shop_state, turn, action_counter
+                        state, turn, action_counter
                     )
 
                     # Feed the shop state to the network
-                    action = self.select_action(shop_state, mask)
+                    action = self.select_action(state, mask)
 
                     # Check if we hit any shop terminal states
                     if action == Action.A68:

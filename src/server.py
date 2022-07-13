@@ -62,7 +62,7 @@ class SAPServer:
     def apply(self, action):
         f, args = SAP_ACTION_FUNC[action]
         f(self.mouse, args)
-        action_hover(self.mouse)
+        action_hover(self.mouse, args)
 
     # Capture the entire game state
     def get_full_state(self):
@@ -247,3 +247,8 @@ class SAPServer:
             while self.shop_ready(self.get_full_state()) is False:
                 print("Waiting for game to start")
                 time.sleep(5)
+
+    def press_button(self, dst):
+        src = self.mouse.position()
+        diff = pos_diff(src, dst)
+        self.mouse.move_and_click(diff)

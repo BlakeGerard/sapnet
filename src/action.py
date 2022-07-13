@@ -5,23 +5,28 @@ import torch
 import time
 
 def pos_diff(src, dst):
-    dx = dst[0] - src[0]
-    dy = dst[1] - src[1]
+    dx = round(dst[0] - src[0])
+    dy = round(dst[1] - src[1])
+    print(dx, dy)
     return (dx, dy)
 
 def action_move(mouse, args):
     """Move a team pet from slot args[0] to slot args[1]"""
-    src = SLOT_LOC[args[0]]
-    dst = SLOT_LOC[args[1]]
-    diff = pos_diff(src, dst)
-    mouse.drag(diff)
+    beg = mouse.position()
+    mid = SLOT_LOC[args[0]]
+    end = SLOT_LOC[args[1]]
+    beg_mid_diff = pos_diff(beg, mid)
+    mid_end_diff = pos_diff(mid, end)
+    mouse.drag(beg_mid_diff, mid_end_diff)
 
 def action_buy(mouse, args):
     """Buy the shop pet at args[0] and place in team position args[1]"""
-    src = SLOT_LOC[args[0]]
-    dst = SLOT_LOC[args[1]]
-    diff = pos_diff(src, dst)
-    mouse.drag(diff)
+    beg = mouse.position()
+    mid = SLOT_LOC[args[0]]
+    end = SLOT_LOC[args[1]]
+    beg_mid_diff = pos_diff(beg, mid)
+    mid_end_diff = pos_diff(mid, end)
+    mouse.drag(beg_mid_diff, mid_end_diff)
 
 def action_sell(mouse, args):
     """Sell the team pet at args"""
@@ -63,7 +68,6 @@ def action_hover(mouse, args):
     dst = HOVER_LOC
     diff = pos_diff(src, dst)
     mouse.move_and_click(diff)
-
 
 class Action(Enum):
     A0 = 0
