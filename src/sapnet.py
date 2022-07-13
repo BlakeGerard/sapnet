@@ -18,8 +18,7 @@ N_ACTIONS = len(SAP_ACTION_SPACE)
 def init_weights(m):
     if isinstance(m, nn.Conv2d):
         nn.init.xavier_uniform_(m.weight)
-        m.bias.data.fill_(0.01)
-
+        m.bias.data.fill_(1.0)
 
 class RnnPreproc(nn.Module):
     def __init__(self):
@@ -53,22 +52,22 @@ class SAPNetActorCritic(nn.Module):
         self.hidden = None
 
         self.transform = tv.Compose(
-            [tv.ToTensor(), tv.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))]
+            [tv.ToTensor(),
+             tv.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))]
         )
 
-        self.layer1 = nn.Sequential(
-            nn.Conv2d(3, 8, kernel_size=3, stride=1),
+        self.conv = nn.Sequential(
+            nn.Conv2d(3, 16, kernel_size=3, stride=1),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.LeakyReLU(),
-        )
-        self.layer1.apply(init_weights)
-
-        self.layer2 = nn.Sequential(
-            nn.Conv2d(8, 16, kernel_size=3, stride=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1),
             nn.MaxPool2d(kernel_size=2, stride=2),
             nn.LeakyReLU(),
+            nn.Conv2d(32, 64, kernel_size=3, stride=1),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.LeakyReLU()
         )
-        self.layer2.apply(init_weights)
+        self.conv.apply(init_weights)
 
         self.rnn_preproc = RnnPreproc()
 
@@ -87,8 +86,7 @@ class SAPNetActorCritic(nn.Module):
     def forward(self, image, mask):
         state = self.transform(image)
         state = state.unsqueeze(0)  # Add batch dimension
-        state = self.layer1(state)
-        state = self.layer2(state)
+        state = self.conv(state)
         print(state.shape)
         state = self.rnn_preproc(state)
         state, self.hidden = self.gru(state, self.hidden)
