@@ -2,8 +2,8 @@ from enum import Enum
 
 SAP_WINDOW_L = 0
 SAP_WINDOW_T = 0
-SAP_WINDOW_W = 854
-SAP_WINDOW_H = 480
+SAP_WINDOW_W = 426
+SAP_WINDOW_H = 240
 
 class Slot(Enum):
     T0 = 0

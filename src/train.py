@@ -10,10 +10,10 @@ from torch.distributions import Categorical
 
 # Training parameters
 RUNS = 1000
-GAMMA = 0.90
-ACTION_LIMIT = 20
-LEARNING_RATE = 5e-4
-GRAD_CLIP_VAL = 10
+GAMMA = 0.99
+ACTION_LIMIT = 30
+LEARNING_RATE = 1e-4
+GRAD_CLIP_VAL = 1
 E = 0.2
 
 SavedAction = namedtuple("SavedAction", ["log_prob", "value"])
@@ -44,7 +44,7 @@ class ActorCriticTrainer:
             return 1
         if battle_status is Battle.LOSS:
             return -1
-        if battle_status is Battle.GAMEOVER:
+        if battle_status is Battle.RUN_LOSS:
             return 0
 
     # Update the model
@@ -105,6 +105,9 @@ class ActorCriticTrainer:
             # We'll refer to one Arena run as an Episode in classic RL terms.
             while run_complete is False:
 
+                while self.server.shop_ready(self.server.get_full_state()) is False:
+                    self.server.mouse.click()
+
                 action = None
                 mask = None
                 action_counter = 0
@@ -152,7 +155,7 @@ class ActorCriticTrainer:
 
                 # Wait for the battle to start
                 while self.server.battle_ready(self.server.get_full_state()) is False:
-                    print("Waiting for battle to start")
+                    time.sleep(1)
 
                 print("----------------------")
                 print("Beginning battle phase")
@@ -192,7 +195,7 @@ class ActorCriticTrainer:
                     while (
                         self.server.run_complete(self.server.get_full_state()) is False
                     ):
-                        self.server.click_top()
+                        self.server.mouse.click()
                         time.sleep(1)
                     run_complete = True
 

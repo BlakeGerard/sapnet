@@ -4,70 +4,53 @@ from slot import *
 import torch
 import time
 
-def pos_diff(src, dst):
-    dx = round(dst[0] - src[0])
-    dy = round(dst[1] - src[1])
-    print(dx, dy)
-    return (dx, dy)
-
 def action_move(mouse, args):
     """Move a team pet from slot args[0] to slot args[1]"""
-    beg = mouse.position()
-    mid = SLOT_LOC[args[0]]
-    end = SLOT_LOC[args[1]]
-    beg_mid_diff = pos_diff(beg, mid)
-    mid_end_diff = pos_diff(mid, end)
-    mouse.drag(beg_mid_diff, mid_end_diff)
+    print("Move action")
+    mouse.move_and_click(SLOT_LOC[args[0]])
+    time.sleep(0.5)
+    mouse.move_and_click(SLOT_LOC[args[1]])
+    time.sleep(0.5)
 
 def action_buy(mouse, args):
     """Buy the shop pet at args[0] and place in team position args[1]"""
-    beg = mouse.position()
-    mid = SLOT_LOC[args[0]]
-    end = SLOT_LOC[args[1]]
-    beg_mid_diff = pos_diff(beg, mid)
-    mid_end_diff = pos_diff(mid, end)
-    mouse.drag(beg_mid_diff, mid_end_diff)
+    print("Buy action")
+    mouse.move_and_click(SLOT_LOC[args[0]])
+    time.sleep(0.5)
+    mouse.move_and_click(SLOT_LOC[args[1]])
+    time.sleep(0.5)
 
 def action_sell(mouse, args):
     """Sell the team pet at args"""
-    beg = mouse.position()
-    mid = SLOT_LOC[args]
-    end = SELL_LOC
-    beg_mid_diff = pos_diff(beg, mid)
-    mid_end_diff = pos_diff(mid, end)
-    mouse.move_and_click(beg_mid_diff)
-    mouse.move_and_click(mid_end_diff)
+    print("Sell action")
+    mouse.move_and_click(SLOT_LOC[args])
+    time.sleep(0.5)
+    mouse.move_and_click(SELL_LOC)
+    time.sleep(0.5)
 
 def action_freeze(mouse, args):
     """Freeze the shop pet at args"""
-    beg = mouse.position()
-    mid = SLOT_LOC[args]
-    end = SELL_LOC
-    beg_mid_diff = pos_diff(beg, mid)
-    mid_end_diff = pos_diff(mid, end)
-    mouse.move_and_click(beg_mid_diff)
-    mouse.move_and_click(mid_end_diff)
+    print("Freeze action")
+    mouse.move_and_click(SLOT_LOC[args])
+    time.sleep(0.5)
+    mouse.move_and_click(FREEZE_LOC)
+    time.sleep(0.5)
 
 def action_roll(mouse, args):
     """Roll"""
-    src = mouse.position()
-    dst = ROLL_LOC
-    diff = pos_diff(src, dst)
-    mouse.move_and_click(diff)
+    print("Roll action")
+    mouse.move_and_click(ROLL_LOC)
+    time.sleep(0.5)
 
 def action_end(mouse, args):
     """End turn"""
-    src = mouse.position()
-    dst = END_LOC
-    diff = pos_diff(src, dst)
-    mouse.move_and_click(diff)
+    mouse.move_and_click(END_LOC)
+    time.sleep(0.5)
 
 def action_hover(mouse, args):
     """Hover at top of screen"""
-    src = mouse.position()
-    dst = HOVER_LOC
-    diff = pos_diff(src, dst)
-    mouse.move_and_click(diff)
+    mouse.move_and_click(HOVER_LOC)
+    time.sleep(0.5)
 
 class Action(Enum):
     A0 = 0

@@ -18,7 +18,7 @@ N_ACTIONS = len(SAP_ACTION_SPACE)
 def init_weights(m):
     if isinstance(m, nn.Conv2d):
         nn.init.xavier_uniform_(m.weight)
-        m.bias.data.fill_(1.0)
+        m.bias.data.fill_(0.01)
 
 class RnnPreproc(nn.Module):
     def __init__(self):
@@ -48,7 +48,7 @@ class SAPNetActorCritic(nn.Module):
         super(SAPNetActorCritic, self).__init__()
         self.name = name
         self.gru_layers = 1
-        self.hidden_size = 256
+        self.hidden_size = 4096
         self.hidden = None
 
         self.transform = tv.Compose(
@@ -71,7 +71,7 @@ class SAPNetActorCritic(nn.Module):
 
         self.rnn_preproc = RnnPreproc()
 
-        self.gru = nn.GRU(16 * 358 * 638, self.hidden_size, self.gru_layers)
+        self.gru = nn.GRU(64 * 28 * 51, self.hidden_size, self.gru_layers)
         self.gru.apply(init_weights)
 
         self.fc = nn.Linear(self.hidden_size, N_ACTIONS)

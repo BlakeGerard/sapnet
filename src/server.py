@@ -20,20 +20,21 @@ import numpy as np
 SAP_PRIVATE_GAME_NAME = "dogparkies"
 
 CV_METHOD = cv.TM_CCOEFF_NORMED
-CV_CONF = 0.95
+CV_CONF = 0.99
+RESOLUTION = "240p"
 
 res = {
-    "logout"    : "resources/480p/logout.png",
-    "victory"   : "resources/480p/victory.png",
-    "defeat"    : "resources/480p/defeat.png",
-    "draw"      : "resources/480p/draw.png",
-    "gameover"  : "resources/480p/gameover.png",
-    "pause"     : "resources/480p/pause.png",
-    "roll"      : "resources/480p/roll.png",
-    "zero_gold" : "resources/480p/zero_gold.png",
-    "one_gold"  : "resources/480p/one_gold.png",
-    "two_gold"  : "resources/480p/two_gold.png",
-    "ten_gold"  : "resources/480p/ten_gold.png",
+    "logout"    : f"resources/{RESOLUTION}/logout.png",
+    "victory"   : f"resources/{RESOLUTION}/victory.png",
+    "defeat"    : f"resources/{RESOLUTION}/defeat.png",
+    "draw"      : f"resources/{RESOLUTION}/draw.png",
+    "gameover"  : f"resources/{RESOLUTION}/gameover.png",
+    "pause"     : f"resources/{RESOLUTION}/pause.png",
+    "roll"      : f"resources/{RESOLUTION}/roll.png",
+    "zero_gold" : f"resources/{RESOLUTION}/zero_gold.png",
+    "one_gold"  : f"resources/{RESOLUTION}/one_gold.png",
+    "two_gold"  : f"resources/{RESOLUTION}/two_gold.png",
+    "ten_gold"  : f"resources/{RESOLUTION}/ten_gold.png",
 }
 
 
@@ -45,7 +46,6 @@ class Battle(Enum):
     RUN_LOSS = 4
     ONGOING = 5
 
-
 class Role(Enum):
     PLAYER = 0
     HOST = 1
@@ -55,11 +55,12 @@ class SAPServer:
     def __init__(self, role):
         self.role = role
         self.window_loc = (SAP_WINDOW_L, SAP_WINDOW_T, SAP_WINDOW_W, SAP_WINDOW_H)
-        self.mouse = Mouse("/dev/input/event10", ARENA_LOC)
+        self.mouse = Mouse("/dev/input/event13", ARENA_LOC)
         self.viewer = GrimImager("DP-2")
 
     # Apply an action
     def apply(self, action):
+        self.mouse.click()
         f, args = SAP_ACTION_FUNC[action]
         f(self.mouse, args)
         action_hover(self.mouse, args)
@@ -76,12 +77,9 @@ class SAPServer:
     # Check if game element is present in the game state
     def locate(self, needle, haystack, confidence):
         res = cv.matchTemplate(haystack, needle, CV_METHOD)
-        match_indices = np.arange(res.size)[(res > confidence).flatten()]
-        matches = np.unravel_index(match_indices[:1], res.shape)
-        if len(matches[0]) == 0:
-            return False
-        else:
+        if np.amax(res) > CV_CONF:
             return True
+        return False
 
     # Check if the battle has started by looking for the fast forward button
     def battle_ready(self, state):
@@ -112,7 +110,7 @@ class SAPServer:
             return Battle.DRAW
 
         arena_lost_search = self.locate(
-            self.open_image_as_np_array(res["gameover"]), state, confidence=0.6
+            self.open_image_as_np_array(res["gameover"]), state, confidence=CV_CONF
         )
         if arena_lost_search:
             print("Run Lost")
@@ -193,7 +191,7 @@ class SAPServer:
             return 1
         if battle_status is Battle.LOSS:
             return -1
-        if battle_status is Battle.GAMEOVER:
+        if battle_status is Battle.RUN_LOSS:
             return 0
 
     def reward_duration(self, battle_status, duration):
@@ -210,10 +208,10 @@ class SAPServer:
 
     # Game interaction to begin arena or private match
     def begin_arena_run(self):
-        print("Move the cursor to the arena button to begin")
+        print("Move the cursor to (0,0) to begin")
         time.sleep(5)
-        self.mouse.click()
-        time.sleep(1)
+        self.mouse.move_and_click(ARENA_LOC)
+        time.sleep(3)
 
     def begin_private_match(self):
         self.join_private_match()
@@ -221,7 +219,7 @@ class SAPServer:
 
     def start_battle(self, state):
         self.apply(Action.A68)
-        self.press_button(CONFIRM_LOC)
+        self.mouse.move_and_click(CONFIRM_LOC)
 
     def join_private_match(self):
         self.press_button(VERSUS_LOC)
@@ -247,8 +245,3 @@ class SAPServer:
             while self.shop_ready(self.get_full_state()) is False:
                 print("Waiting for game to start")
                 time.sleep(5)
-
-    def press_button(self, dst):
-        src = self.mouse.position()
-        diff = pos_diff(src, dst)
-        self.mouse.move_and_click(diff)
